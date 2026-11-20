@@ -1,0 +1,801 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Work Log</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: a working ledger. Summary cards on top, one sortable table of facilities, and a large detail dialog per facility with tabs for details, call notes, data still to collect, and files. */
+:root{--bg:#f3f5f8;--panel:#fff;--line:#dde2ea;--tx:#1b2330;--mut:#667085;--acc:#2f6fed;--on:#fff;--ok:#14866d;--wait:#b7791f;--need:#2f6fed;--blk:#c2413b;--new:#7b8798;--soft:color-mix(in srgb,var(--acc) 7%,var(--panel));box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181f;--panel:#1c222c;--line:#2b3340;--tx:#e6eaf0;--mut:#8f9bad;--acc:#6b9bff;--on:#10151d;--ok:#3fc4a3;--wait:#e0b050;--need:#6b9bff;--blk:#ef7d77;--new:#8f9bad;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181f;--panel:#1c222c;--line:#2b3340;--tx:#e6eaf0;--mut:#8f9bad;--acc:#6b9bff;--on:#10151d;--ok:#3fc4a3;--wait:#e0b050;--need:#6b9bff;--blk:#ef7d77;--new:#8f9bad;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 Manrope,system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:22px;margin:0;flex:1 1 160px;letter-spacing:-.01em}h2{font-size:15px;margin:0 0 10px}h3{font-size:15px;margin:0 0 4px}
+.hbtns{display:flex;gap:8px;flex-wrap:wrap}
+button,input,select,textarea{font:inherit;color:inherit}
+.btn{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+.btn:hover{border-color:var(--acc)}.btn:disabled{opacity:.6;cursor:default}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--on);font-weight:600}
+.btn.ai{border-color:color-mix(in srgb,var(--acc) 45%,var(--line))}
+.btn.ai::before{content:"AI";font-size:10.5px;font-weight:700;letter-spacing:.06em;background:var(--acc);color:var(--on);border-radius:4px;padding:1px 5px;margin-right:7px}
+body.noai .ai{display:none!important}body.noimg .aiimg{display:none!important}
+.lnk{background:none;border:0;color:var(--acc);cursor:pointer;padding:2px 4px;font-size:13px;text-decoration:underline}.lnk.del{color:var(--blk)}
+a.lnk{display:inline-block}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.sync{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--soft);font-size:13px;margin-bottom:12px}.sync.bad{border-color:var(--blk);color:var(--blk)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+.stat b{display:block;font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.stat span{color:var(--mut);font-size:13px}
+.hero b{font-size:30px;color:var(--ok)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line);margin:6px 0 10px}
+.leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mut)}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.prog{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:8px 0 4px}.prog i{display:block;height:100%;background:var(--acc)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tools input[type=search]{flex:1 1 220px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:4px 12px;font-size:13px;cursor:pointer}.chip[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:var(--on)}
+.chip .n{opacity:.7;margin-left:3px;font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:1000px}th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}
+th{font-size:13px;color:var(--mut);font-weight:600;cursor:pointer;white-space:nowrap}tr:last-child td{border-bottom:0}
+tbody tr{cursor:pointer}tbody tr:hover{background:color-mix(in srgb,var(--acc) 6%,transparent)}
+.nm{font-weight:600}.sub{color:var(--mut);font-size:12.5px;overflow-wrap:anywhere}.pn{font-weight:600}
+.pill{border-radius:99px;padding:2px 10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;background:transparent;display:inline-block}
+select.st{border-radius:99px;padding:3px 8px;font-weight:600;font-size:13px;background:var(--panel);border:1px solid currentColor;cursor:pointer}
+.s-Progress{color:var(--acc)}.s-Approved{color:var(--ok)}.s-Waiting{color:var(--wait)}.s-Need{color:var(--need)}.s-Block{color:var(--blk)}.s-Not{color:var(--new)}
+.empty{padding:28px;text-align:center;color:var(--mut)}.empty.sm{padding:16px}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--tx);width:min(920px,calc(100vw - 20px));max-height:94vh;padding:0}
+dialog[open]{display:flex;flex-direction:column}dialog.sm{width:min(440px,calc(100vw - 24px))}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+.dh{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:14px 18px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.dh h2{font-size:18px;margin:0}.dh>div:first-child{min-width:0;flex:1 1 240px}.dhr{display:flex;gap:8px;align-items:center}
+.tabs{display:flex;gap:2px;padding:0 12px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;cursor:pointer;color:var(--mut);font-weight:600;white-space:nowrap}
+.tabs button[aria-selected=true]{color:var(--tx);border-bottom-color:var(--acc)}
+.cnt{display:inline-block;margin-left:6px;font-size:11.5px;background:var(--line);color:var(--tx);border-radius:99px;padding:0 7px}.cnt:empty{display:none}
+.db{padding:16px 18px;overflow:auto;flex:1;min-height:0}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}@media(max-width:560px){.f{grid-template-columns:1fr}}
+label{display:block;font-size:13px;color:var(--mut);min-width:0}label.w{grid-column:1/-1}
+label input,label select,label textarea,.in{display:block;width:100%;margin-top:3px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--tx)}
+.pbox{border:1px solid color-mix(in srgb,var(--acc) 40%,var(--line));background:var(--soft);border-radius:10px;padding:12px 14px;margin:14px 0;min-width:0}
+.pbox legend{font-weight:700;font-size:13px;padding:0 6px;color:var(--tx)}
+.msg{font-size:13px;padding:8px 10px;border-radius:8px;background:var(--soft);border:1px solid var(--line);margin-top:8px;overflow-wrap:anywhere}.msg.bad{border-color:var(--blk);color:var(--blk)}
+.adv{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:4px}
+.advh{font-weight:700;font-size:13px;margin-top:12px}
+.ac{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;flex-wrap:wrap}
+.ac>div:first-child{min-width:0;flex:1 1 260px;overflow-wrap:anywhere}.ab{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.acts{display:flex;gap:8px;justify-content:space-between;margin-top:14px;flex-wrap:wrap;align-items:center}.acts.end{justify-content:flex-end}
+.composer{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--soft)}
+.composer .f{grid-template-columns:1fr 1fr 2fr}@media(max-width:700px){.composer .f{grid-template-columns:1fr}}
+.tools2{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.note-c{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px}
+.nh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}.nh time{color:var(--mut)}.sp{flex:1}
+.nb{white-space:pre-wrap;margin-top:6px;overflow-wrap:anywhere}
+.ti{display:grid;grid-template-columns:auto 1.4fr 1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)}
+@media(max-width:560px){.ti{grid-template-columns:auto 1fr auto}.ti .tv{grid-column:1/-1}}
+.ti input.tl,.ti input.tv,.fnote{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 9px;min-width:0;width:100%}
+.ti input[type=checkbox]{width:18px;height:18px;accent-color:var(--acc)}
+.ti.dn .tl{text-decoration:line-through;color:var(--mut)}
+.row{display:flex;gap:8px;margin-top:10px}.row input{flex:1;min-width:0}
+.fi{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}.fi>div{min-width:0;flex:1}
+.fi img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.ft{width:56px;height:56px;flex:none;display:grid;place-items:center;border-radius:8px;background:var(--soft);border:1px solid var(--line);font-weight:700;font-size:12px;color:var(--acc)}
+.fi a{font-weight:600;overflow-wrap:anywhere}
+.drop{border:1.5px dashed var(--line);border-radius:10px;padding:18px;text-align:center;color:var(--mut);margin-bottom:6px}.drop.on{border-color:var(--acc);background:var(--soft)}
+.sec{border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}.sech{font-size:14px;margin:16px 0 0}
+.hist{list-style:none;margin:6px 0 0;padding:0;font-size:13px;color:var(--mut)}.hist li{padding:3px 0}
+.msgs{display:flex;flex-direction:column;gap:8px;min-height:160px}
+.bub{max-width:90%;padding:8px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}
+.bub.u{align-self:flex-end;background:var(--acc);color:var(--on)}.bub.a{align-self:flex-start;background:var(--soft);border:1px solid var(--line)}
+.askf{display:flex;gap:8px;margin-top:10px}.askf input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.note{color:var(--mut);font-size:12.5px;margin-top:14px}
+@media(prefers-reduced-motion:no-preference){.bar i{transition:width .3s}}
+</style>
+
+<div class="wrap">
+<header><h1>Work Log</h1>
+<div class="hbtns">
+<button class="btn" id="bPers">Personas</button>
+<button class="btn ai" id="bPlan">Planner</button>
+<button class="btn ai" id="bAsk">Ask</button>
+<button class="btn" id="exp">Export</button><button class="btn" id="imp">Import</button>
+<button class="btn" id="th" aria-label="Toggle light or dark">Light/Dark</button>
+<button class="btn pri" id="add">Add work</button>
+</div></header>
+<div id="sync" class="sync" role="status" hidden></div>
+<section class="stats" id="stats"></section>
+<section class="card" style="margin-bottom:14px" aria-labelledby="currencyTitle">
+<h2 id="currencyTitle">USD to PHP</h2>
+<div class="f">
+<label>Amount in USD<input id="fxAmount" type="number" min="0" step="any" value="25" inputmode="decimal"></label>
+<label>Exchange rate (PHP per 1 USD)<input id="fxRate" type="number" min="0" step="any" placeholder="Loading web rate…" inputmode="decimal" aria-describedby="fxHelp"></label>
+</div>
+<div class="tools2"><button class="btn" id="fxEarned">Use total earned</button><label>Pay period to convert<select id="fxPayPeriod"></select></label><button class="btn" id="fxPeriod">Convert selected period</button><button class="btn" id="fxRefresh">Refresh web rate</button><label>Show earnings in <select id="fxCurrency"><option value="USD">USD</option><option value="PHP">PHP</option></select></label><output id="fxResult" aria-live="polite"></output></div>
+<p class="sub" id="fxRateStatus" role="status">Loading latest web rate…</p>
+<p class="sub" id="fxHelp">Latest available daily rate from <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">ExchangeRate-API</a>. Estimates exclude bank fees. You can also enter your own rate.</p>
+<p class="sub" id="fxPeriodInfo" aria-live="polite"></p>
+</section>
+<section class="grid2"><div class="card"><h2>Where your works stand</h2><div id="pipe"></div></div><div class="card"><h2>Pay periods</h2><div id="pp"></div></div></section>
+<div class="tools"><input type="search" id="q" placeholder="Search facility, persona, number, email, notes, files" aria-label="Search"><div class="chips" id="chips"></div></div>
+<div class="tw"><table><thead><tr><th data-k="name">Facility</th><th data-k="persona">Persona · number · email used</th><th data-k="status">Status</th><th data-k="workDate">Worked</th><th data-k="approvedDate">Approved</th><th data-k="todo">Data to collect</th><th>Latest note</th></tr></thead><tbody id="body"></tbody></table></div>
+<p class="note" id="noteTxt">Click a facility to add call notes, record the persona, number and email you used, list what you still need to collect, and attach files.</p>
+</div>
+
+<dialog id="dlg" aria-labelledby="dt">
+<div class="dh"><div><h2 id="dt">Add work</h2><div class="sub" id="dsub"></div></div>
+<div class="dhr"><select id="dst" class="st" data-f="status" aria-label="Status"></select><button class="btn pri" id="dn" data-close>Done</button></div></div>
+<div class="tabs" id="tabs" role="tablist">
+<button role="tab" data-t="ov" aria-selected="true">Overview</button>
+<button role="tab" data-t="nt" aria-selected="false">Call notes<span class="cnt" id="cNt"></span></button>
+<button role="tab" data-t="td" aria-selected="false">Data to collect<span class="cnt" id="cTd"></span></button>
+<button role="tab" data-t="fl" aria-selected="false">Files<span class="cnt" id="cFl"></span></button>
+</div>
+<div class="db">
+<section id="t-ov">
+<div class="f">
+<label class="w">Facility name<input id="f-name" data-f="name" required></label>
+<label>Programs (AL / IL / MC)<input id="f-programs" data-f="programs" placeholder="AL + MC"></label>
+<label>Facility phone<input id="f-phone" data-f="phone"></label>
+<label>Contact at facility<input id="f-contact" data-f="contact"></label>
+<label>Date worked<input type="date" id="f-workDate" data-f="workDate"></label>
+<label>Approved date<input type="date" id="f-approvedDate" data-f="approvedDate"></label>
+<label class="w">Facility address<input id="f-address" data-f="address"></label>
+<label class="w">Link<input id="f-link" data-f="link"></label>
+<label class="w">Facility notes<textarea id="f-notes" data-f="notes" rows="2"></textarea></label>
+</div>
+<fieldset class="pbox"><legend>Persona used for this facility</legend>
+<div class="f">
+<label class="w">Persona name<input id="f-persona" data-f="persona" list="pl" placeholder="e.g. Kevin Hunter" autocomplete="off"></label>
+<label>Number used<input id="f-pPhone" data-f="pPhone" placeholder="(555) 010-2233" inputmode="tel"></label>
+<label>Email used<input id="f-pEmail" data-f="pEmail" placeholder="name@example.com" inputmode="email"></label>
+<label class="w">Persona home address<input id="f-pAddr" data-f="pAddr" placeholder="Street, town, state ZIP"></label>
+<label class="w">Who you are calling for<textarea id="f-pStory" data-f="pStory" rows="2" placeholder="e.g. Grandparents William and Michelle Wood"></textarea></label>
+</div>
+<div id="dupMsg" class="msg" hidden></div>
+<datalist id="pl"></datalist>
+</fieldset>
+<div class="adv ai"><button class="btn ai" id="advGo">Suggest address and check reuse</button>
+<div class="sub" style="margin-top:6px">Finds an address 10 to 12 miles from this facility and any persona you already used within 20 miles or 30 minutes.</div>
+<div id="advOut"></div></div>
+<div class="acts"><span><button class="btn" id="rmbtn" style="color:var(--blk)">Delete work</button>
+<span id="rmrow" hidden>Delete this work with its notes and files? <button class="btn" id="rmyes" style="color:var(--blk)">Yes, delete</button> <button class="btn" id="rmno">Keep</button></span></span></div>
+</section>
+
+<section id="t-nt" hidden>
+<div class="composer" style="margin-bottom:16px">
+<h3 style="margin-top:0">Record a call → shop notes</h3>
+<p class="sub">Choose microphone for a speakerphone call, or call tab + microphone for a browser call. In the sharing dialog, select the call tab and turn on “Share tab audio”. Recording requires permission and everyone’s consent. Clips stop after 8 minutes; start another for longer calls.</p>
+<div class="row"><select id="recSource" aria-label="Recording source"><option value="mic">Microphone / speakerphone</option><option value="tab">Call tab + microphone</option></select><button class="btn pri" id="recStart">Start recording</button><button class="btn" id="recStop" disabled>Stop and transcribe</button><button class="btn" id="recUpload">Transcribe audio file</button></div>
+<p class="sub" id="recStatus" role="status" aria-live="polite">The transcript saves as a call note. Review the generated shop summary and pricing before saving it.</p>
+<a id="recDownload" class="lnk" hidden download>Download last recording</a>
+</div>
+<div class="composer">
+<div class="f">
+<label>Type<select id="nType"></select></label>
+<label>When<input type="datetime-local" id="nWhen"></label>
+<label>Persona and number used<input id="nWho" placeholder="Persona, number"></label>
+<label class="w">Note<textarea id="nText" rows="5" placeholder="What did they say? Prices, fees, names, promises, what to do next."></textarea></label>
+</div>
+<div class="tools2"><button class="btn pri" id="nAdd">Add note</button><button class="btn" id="nCancel" hidden>Cancel edit</button><button class="btn" id="nTpl">Pricing template</button>
+<button class="btn ai aiimg" id="nPhotoBtn">Read a photo</button><button class="btn ai" id="nReview">Review notes</button></div>
+<div class="sub" id="nAiMsg" style="margin-top:6px"></div>
+</div>
+<div id="revOut"></div>
+<div id="nList"></div>
+<div id="hist"></div>
+</section>
+
+<section id="t-td" hidden>
+<div class="acts" style="margin-top:0"><div><b>Data you still need from this facility</b><div class="sub" id="tdProg"></div></div><button class="btn" id="tdStd">Add standard list</button></div>
+<div id="tdList"></div>
+<div class="row"><input id="tdNew" class="in" style="margin-top:0" placeholder="Add something to collect, e.g. respite stay price" aria-label="New item"><button class="btn" id="tdAdd">Add</button></div>
+</section>
+
+<section id="t-fl" hidden>
+<div class="drop" id="flZone"><div>Drop any file here · up to 4 MB per file</div><div class="row" style="justify-content:center"><button class="btn" id="flBtn">Choose files</button></div></div>
+<div class="sub" id="flMsg"></div>
+<div id="flList"></div>
+</section>
+</div>
+</dialog>
+
+<dialog id="dp"><div class="dh"><div><h2>Personas</h2><div class="sub">Save a persona once, then pick it on any facility. Each card lists where it was used.</div></div><button class="btn" data-close>Close</button></div>
+<div class="db">
+<div class="sec"><h3 id="pfT">Add a persona</h3>
+<div class="f">
+<label class="w">Persona name<input id="pfName"></label>
+<label>Number<input id="pfPhone" inputmode="tel"></label>
+<label>Email<input id="pfEmail" inputmode="email"></label>
+<label class="w">Home address<input id="pfAddr" placeholder="Street, town, state ZIP"></label>
+<label class="w">Who you are calling for<textarea id="pfStory" rows="2"></textarea></label>
+</div>
+<div class="acts end"><button class="btn" id="pfClr">Clear</button><button class="btn pri" id="pfSave">Save persona</button></div></div>
+<div id="pList"></div>
+</div></dialog>
+
+<dialog id="dpl"><div class="dh"><div><h2>Planner</h2><div class="sub">AI estimates distances from its own knowledge. Check each address in Maps before you use it.</div></div><button class="btn" data-close>Close</button></div>
+<div class="db">
+<div class="sec"><h3>1. Read persona details from your notes</h3><div class="sub">Your notes already hold persona names, addresses and relatives. AI copies them into the persona fields so reuse checks work. You review before anything is saved.</div>
+<div class="acts end"><button class="btn ai" id="plRead">Scan my notes</button></div><div id="plReadOut"></div></div>
+<div class="sec"><h3>2. Plan personas for facilities not started</h3><div class="sub">For each facility, AI picks a persona you already used nearby, or a new address 10 to 12 miles away. Nearby facilities share one new address.</div>
+<div class="acts end"><button class="btn ai" id="plRun">Plan personas</button></div><div id="plOut"></div></div>
+</div></dialog>
+
+<dialog id="dask"><div class="dh"><div><h2>Ask about your log</h2><div class="sub">Answers use the works, personas, notes and checklists in this log.</div></div><button class="btn" data-close>Close</button></div>
+<div class="db"><div class="msgs" id="aMsgs"></div>
+<div class="chips" id="aChips" style="margin-top:10px"></div>
+<form class="askf" id="aForm"><input id="aIn" placeholder="Ask about works, personas, pay or what to do next" aria-label="Question"><button class="btn pri" id="aSend">Ask</button><button class="btn" id="aStop" type="button" hidden>Stop</button></form></div></dialog>
+
+<dialog id="cf" class="sm"><div class="db"><p id="cfm" style="margin-top:0"></p><div class="acts end"><button class="btn" id="cfno">Cancel</button><button class="btn pri" id="cfok">Confirm</button></div></div></dialog>
+
+<input type="file" id="fi" accept=".json,application/json" hidden>
+<input type="file" id="fUp" multiple hidden>
+<input type="file" id="recFile" accept="audio/*" hidden>
+<input type="file" id="nPhoto" accept="image/*" hidden>
+
+<script>
+(function(){
+"use strict";
+const SEED=[{"id":"R0001","name":"South Mountain Memory Care","phone":"(610) 965-7662","programs":"MC","contact":"Cathy Edwards","status":"Approved","workDate":"2026-10-01","approvedDate":"2026-10-02","persona":"","address":"201 S. 7th St., Emmaus, PA 18049","link":"https://southmountainmemorycare.com","notes":"Vera Cruz Rd, Emmaus, PA 18049","log":[]},{"id":"R0002","name":"Center Court Senior Living","phone":"(801) 713-9120","programs":"","contact":"","status":"Waiting for reply","workDate":"2026-10-01","approvedDate":"","persona":"","address":"4916 S Center St, Murray, UT 84107, USA","link":"https://www.centercourt-apts.com","notes":"Holladay, UT \u2014 Highland Drive. Hi, kindly clarify the studio and 2 br units. Also, try to ask for the community fee. Thank you (New persona Kevin Hunter, Columbus, Ohio. For my grandparent Genesis 81, Jane 78)","log":[]},{"id":"R0003","name":"Colliers Assisted Living at Countryside","phone":"","programs":"","contact":"","status":"Approved","workDate":"2026-09-27","approvedDate":"2026-09-27","persona":"","address":"","link":"","notes":"","log":[]},{"id":"R0004","name":"Rose Pointe Assisted Living","phone":"","programs":"","contact":"","status":"Approved","workDate":"2026-09-27","approvedDate":"2026-09-28","persona":"","address":"","link":"","notes":"","log":[]},{"id":"R0005","name":"Brethren Care Village","phone":"","programs":"","contact":"","status":"Approved","workDate":"2026-09-27","approvedDate":"2026-09-28","persona":"","address":"","link":"","notes":"","log":[]},{"id":"R0006","name":"Emerald Cottages of Stonebridge","phone":"","programs":"","contact":"","status":"Approved","workDate":"2026-09-27","approvedDate":"2026-09-30","persona":"","address":"","link":"","notes":"","log":[]},{"id":"R0007","name":"Grand Regency of Southshore","phone":"(773) 721-6600","programs":"","contact":"","status":"Not started","workDate":"","approvedDate":"","persona":"","address":"7419 S Exchange, Chicago, IL 60649","link":"https://grandlifestyles.com/store-locator/grand-regency-of-south-shore","notes":"E. 67th Place, Chicago, IL 60637","log":[]},{"id":"R0008","name":"Birchaven Village","phone":"(419) 424-3000","programs":"","contact":"","status":"Not started","workDate":"","approvedDate":"","persona":"","address":"15100 Birchaven Ln, Findlay, OH 45840, USA","link":"https://birchaven.org","notes":"318 Pheasant Run Ln, Findlay, OH 45840, USA. 614AREA CODE","log":[]},{"id":"R0009","name":"Son Heaven Assisted Living","phone":"(406) 449-0229","programs":"AL","contact":"McKenzie","status":"Approved","workDate":"2026-10-08","approvedDate":"2026-10-09","persona":"","address":"2510 Ferndale Ln, Helena, MT 59601, USA","link":"https://www.caslenlc.com/facility/helena","notes":"Country Club Blvd, Helena, MT 59601. 8785980037, southwestern Pennsylvania","log":[]},{"id":"R0010","name":"Sparrow Assisted Living","phone":"(713) 697-4600","programs":"","contact":"Angie","status":"Waiting for reply","workDate":"2026-10-09","approvedDate":"","persona":"","address":"7414 Jensen Drive, Houston, TX 77093","link":"https://www.sparrowadultliving.com","notes":"Chantilly Lane, Houston, TX 77018. 415 area code.","log":[]},{"id":"R0011","name":"Addington Place of Jupiter","phone":"(561) 253-8161","programs":"AL + IL + MC","contact":"todd","status":"Approved","workDate":"2026-10-12","approvedDate":"2026-10-12","persona":"","address":"1031 Community Dr, Jupiter, FL 33458, USA","link":"https://www.seniorlifestyle.com/property/florida/addington-place-of-jupiter","notes":". Admirals Cove, Jupiter, FL 33477","log":[]},{"id":"R0012","name":"Mangrove Bay","phone":"(561) 575-3123","programs":"AL + IL + MC","contact":"","status":"Waiting for reply","workDate":"2026-10-13","approvedDate":"","persona":"","address":"110 Mangrove Bay Way, Jupiter, FL 33477, USA","link":"https://www.seniorlifestyle.com/property/florida/mangrove-bay","notes":". Admirals Cove, Jupiter, FL 33477","log":[]},{"id":"R0013","name":"Discovery Village At Palm Beach Gardens","phone":"(561) 619-9020","programs":"IL + MC","contact":"","status":"Approved","workDate":"2026-10-13","approvedDate":"2026-10-23","persona":"","address":"100 Discovery Wy, Palm Beach Gardens, FL 33418, USA","link":"https://discoveryvillagepalmbeachgardens.seniorlivingnearme.com","notes":". Admirals Cove, Jupiter, FL 33477. 561-6199025 - Sue/ hana - 561-918-0161","log":[]},{"id":"R0014","name":"Atria Park of St. Josephs","phone":"(561) 747-1135","programs":"","contact":"","status":"Approved","workDate":"2026-10-18","approvedDate":"2026-10-20","persona":"","address":"350 Bush Rd, Jupiter, FL 33458, USA","link":"https://www.atriaseniorliving.com/retirement-communities/atria-park-of-st-josephs-jupiter-fl","notes":". Admirals Cove, Jupiter, FL 33477","log":[]},{"id":"R0015","name":"Capital City Gardens Rehabilitation and Nursing Center","phone":"(614) 464-2273","programs":"MC","contact":"","status":"Block","workDate":"","approvedDate":"","persona":"","address":"920 Thurber Dr W, Columbus, OH 43215, USA","link":"https://capitalcityghc.com","notes":"Cambridge Boulevard, Grandview Heights, OH 43212, USA","log":[]},{"id":"R0016","name":"StoryPoint East Broad","phone":"(614) 739-8307","programs":"","contact":"","status":"Not started","workDate":"","approvedDate":"","persona":"","address":"79 Blossom Fld Blvd, Columbus, OH 43213, USA","link":"https://storypoint.com/community/east-broad-oh/?utm_source=gmb&utm_medium=organic","notes":"Hunters Ridge Dr, Gahanna, OH 43230","log":[]},{"id":"R0017","name":"StoryPoint Gahanna","phone":"(614) 933-0078","programs":"","contact":"","status":"Not started","workDate":"","approvedDate":"","persona":"","address":"5435 Morse Rd, Gahanna, OH 43230, USA","link":"https://storypoint.com/community/gahanna-oh","notes":"Hunters Ridge Dr, Gahanna, OH 43230","log":[]},{"id":"R0018","name":"Sage Park Assisted Living & Memory Care","phone":"(614) 710-4984","programs":"","contact":"pola","status":"Approved","workDate":"2026-10-22","approvedDate":"2026-10-22","persona":"","address":"5201 Morse Rd, Gahanna, OH 43230, USA","link":"https://www.sunshineretirementliving.com/sage-park-gahanna-assisted-living","notes":"Hunters Ridge Dr, Gahanna, OH 43230","log":[]},{"id":"R0019","name":"Colossal Health & Rehab Center","phone":"(614) 885-0408","programs":"","contact":"","status":"Approved","workDate":"2026-10-26","approvedDate":"2026-10-27","persona":"","address":"1030 High St, Worthington, OH 43085, USA","link":"https://saberhealth.com/location/colossal-health-rehab-center","notes":"Hunters Ridge Dr, Gahanna, OH 43230","log":[]},{"id":"R0020","name":"Arch Health & Rehab Center","phone":"(614) 846-5420","programs":"","contact":"","status":"Not started","workDate":"","approvedDate":"","persona":"","address":"5700 Karl Rd, Columbus, OH 43229, USA","link":"https://saberhealth.com/location/arch-health-rehab-center","notes":"Hunters Ridge Dr, Gahanna, OH 43230","log":[]},{"id":"R0021","name":"Windsor Gardens","phone":"(502) 349-6214","programs":"","contact":"","status":"Approved","workDate":"2026-10-22","approvedDate":"2026-10-22","persona":"","address":"101 Isaac Greer Ct, Bardstown, KY 40004, USA","link":"https://windsorgardens.com","notes":"101 Maywood Ave, Bardstown, KY 40004, USA","log":[]},{"id":"R0022","name":"Holliday Farms Senior Living","phone":"(317) 699-8662","programs":"","contact":"","status":"Approved","workDate":"2026-10-22","approvedDate":"2026-10-23","persona":"","address":"11143 Ambrose Ln, Zionsville, IN 46077, USA","link":"https://hollidayfarmsseniorliving.com","notes":"10400 Holliday Farms Blvd, Zionsville, IN 46077","log":[]},{"id":"R0023","name":"Hometown Manor Assisted Living Community","phone":"(502) 348-4663","programs":"","contact":"","status":"Approved","workDate":"2026-10-22","approvedDate":"2026-10-22","persona":"","address":"103 Manor Dr, Bardstown, KY 40004, USA","link":"https://hometownmanor.com/bardstown","notes":"103 Coventry Ln, Bardstown, KY 40004","log":[]},{"id":"R0024","name":"The Enclave at Round Rock Senior Living","phone":"(512) 693-2420","programs":"AL + IL","contact":"","status":"Approved","workDate":"2026-10-22","approvedDate":"2026-10-29","persona":"","address":"2351 Oakmont Dr, Round Rock, TX 78665, USA","link":"https://spectrumretirement.com/enclaveatroundrock-senior-living-tx-roundrock","notes":"Red Granite Rd, Georgetown, TX 78633, USA.","log":[]},{"id":"R0025","name":"Mercy House Georgetown","phone":"(254) 793-2311","programs":"AL + MC","contact":"","status":"Approved","workDate":"2026-10-22","approvedDate":"2026-10-27","persona":"","address":"1650 Co Rd 245, Georgetown, TX 78633, USA","link":"https://mercy.house/location-rocky-hollow-georgetown-tx","notes":"Red Granite Rd, Georgetown, TX 78633, USA.","log":[]},{"id":"R0026","name":"The Wesleyan Independent Living West","phone":"(512) 863-2528","programs":"IL","contact":"","status":"Approved","workDate":"2026-10-22","approvedDate":"2026-10-28","persona":"","address":"139 Estrella Crossing, Georgetown, TX 78628, USA","link":"https://thewesleyan.org/abundant-living/independent-living","notes":"Red Granite Rd, Georgetown, TX 78633, USA.","log":[]},{"id":"R0027","name":"The Oscar at Georgetown","phone":"(754) 714-2255","programs":"","contact":"","status":"Approved","workDate":"2026-10-22","approvedDate":"2026-10-26","persona":"","address":"3810 Williams Dr, Georgetown, TX 78628, USA","link":"https://atlasseniorliving.com/the-oscar-at-georgetown","notes":"Red Granite Rd, Georgetown, TX 78633, USA.","log":[]},{"id":"R0028","name":"Grand Living At Georgetown","phone":"(512) 649-1339","programs":"","contact":"","status":"Approved","workDate":"2026-10-22","approvedDate":"2026-10-28","persona":"","address":"1330 W University Ave, Georgetown, TX 78628, USA","link":"https://grandliving.com/communities/senior-living-at-georgetown-georgetown-texas","notes":"Red Granite Rd, Georgetown, TX 78633, USA.","log":[]},{"id":"R0029","name":"Touchmark at Georgetown","phone":"(512) 591-0100","programs":"","contact":"","status":"Waiting for reply","workDate":"2026-10-22","approvedDate":"","persona":"","address":"60 Del Webb Blvd, Georgetown, TX 78633, USA","link":"https://touchmark.com/senior-living/tx/georgetown/touchmark-at-georgetown","notes":"Red Granite Rd, Georgetown, TX 78633, USA.","log":[]},{"id":"R0030","name":"Brandywine Summit","phone":"(908) 795-8616","programs":"AL + MC","contact":"africa morales","status":"Approved","workDate":"2026-10-22","approvedDate":"2026-10-23","persona":"","address":"41 Springfield Ave, Summit, NJ 07901, USA","link":"https://www.brandycare.com/community/summit","notes":"351 Hillside Ave, Chatham Township, NJ 07928","log":[]},{"id":"R0031","name":"Cooper Trail Senior Living","phone":"(502) 572-4329","programs":"AL + MC","contact":"adrian","status":"Approved","workDate":"2026-10-26","approvedDate":"2026-10-27","persona":"","address":"325 Lincoln Way, Bardstown, KY 40004, USA","link":"https://trilogyhs.com/senior-living/ky/bardstown/cooper-trail-senior-living","notes":"3166 State Highway 1066, Bloomfield, KY 40008","log":[]},{"id":"R0032","name":"Glasswater Creek of Whitestown","phone":"(463) 259-7491","programs":"","contact":"dan","status":"Waiting for reply","workDate":"","approvedDate":"","persona":"","address":"5829 New Hope Blvd, Whitestown, IN 46075, USA","link":"https://www.gardant.com/glasswatercreek-whitestown","notes":"8115 Hanley Ln, Zionsville, IN 46077","log":[]},{"id":"R0033","name":"Homewood Health Campus","phone":"765.978.5271","programs":"AL + MC","contact":"","status":"Approved","workDate":"2026-10-26","approvedDate":"2026-10-27","persona":"","address":"2494 N Lebanon St, Lebanon, IN 46052, USA","link":"https://trilogyhs.com/senior-living/in/lebanon/homewood-health-campus","notes":"8115 Hanley Ln, Zionsville, IN 46077","log":[]},{"id":"R0034","name":"Monarch Coopers Corner","phone":"(914) 712-6992","programs":"AL + MC","contact":"","status":"Approved","workDate":"2026-10-27","approvedDate":"2026-10-28","persona":"","address":"11 Mill Rd, New Rochelle, NY 10804, USA","link":"https://www.monarchcommunities.com/coopers-corner-new-rochelle-ny","notes":"28 Garden Rd, Scarsdale, NY 10583","log":[]},{"id":"R0035","name":"Brightview Tarrytown - Senior Assisted Living & Memory Care","phone":"(914) 529-6873","programs":"AL + MC","contact":"","status":"Approved","workDate":"2026-10-27","approvedDate":"2026-10-29","persona":"","address":"581 Old White Plains Rd, Tarrytown, NY 10591, USA","link":"https://www.brightviewseniorliving.com/find-a-community/brightview-tarrytown","notes":"28 Garden Rd, Scarsdale, NY 10583, USA","log":[]},{"id":"R0036","name":"Wellbrooke of Carmel","phone":"(317) 569-7200","programs":"AL + MC","contact":"","status":"Approved","workDate":"2026-10-28","approvedDate":"2026-10-29","persona":"","address":"12315 N Pennsylvania St, Carmel, IN 46032, USA","link":"https://trilogyhs.com/senior-living/in/carmel/wellbrooke-of-carmel","notes":"15943 Oak Park Ct, Westfield, IN 46074","log":[]},{"id":"R0037","name":"Harmony Village at Hanover Township","phone":"(973) 793-1470","programs":"MC","contact":"marisol","status":"Approved","workDate":"2026-10-30","approvedDate":"2026-11-02","persona":"","address":"101B Whippany Rd, Whippany, NJ 07981, USA","link":"https://www.care-one.com/locations/harmony-village-at-hanover-township-memory-care-morris-county-nj","notes":"2 Vreeland Rd, Florham Park, NJ 07932 - michael carter","log":[]},{"id":"R0038","name":"Sunrise of Madison","phone":"(973) 301-0005","programs":"","contact":"","status":"Not started","workDate":"","approvedDate":"","persona":"","address":"215 Madison Ave, Madison, NJ 07940, USA","link":"https://www.sunriseseniorliving.com/communities/nj/sunrise-of-madison","notes":"2 Vreeland Rd, Florham Park, NJ 07932 - kevin / nolan&elizabeth","log":[]},{"id":"R0039","name":"Brightview Randolph","phone":"(973) 559-6422/ 667 239 8011","programs":"","contact":"","status":"Not started","workDate":"","approvedDate":"","persona":"","address":"175 Quaker Church Rd, Randolph, NJ 07869, USA","link":"https://www.brightviewseniorliving.com/find-a-community/brightview-randolph/getting-here","notes":"2 Vreeland Rd, Florham Park, NJ 07932","log":[]},{"id":"R0040","name":"Brighton Gardens of Florham Park","phone":"(973) 966-8999/ 862-445-9760","programs":"","contact":"","status":"Approved","workDate":"2026-11-02","approvedDate":"2026-11-03","persona":"","address":"21 Ridgedale Ave, Florham Park, NJ 07932, USA","link":"https://www.sunriseseniorliving.com/communities/nj/brighton-gardens-of-florham-park","notes":"2 Vreeland Rd, Florham Park, NJ 07932","log":[]},{"id":"R0041","name":"Parsons House Assisted Living & Memory Care","phone":"(402) 498-9554","programs":"","contact":"","status":"Approved","workDate":"2026-11-04","approvedDate":"2026-11-04","persona":"","address":"14325 Eagle Run Dr, Omaha, NE 68164, USA","link":"https://parsonshouseseniorliving.com","notes":"North 156th Street, Bennington, NE 68007","log":[]},{"id":"R0042","name":"Benchmark Senior Living at Woburn","phone":"(781) 684-9435","programs":"","contact":"","status":"Not started","workDate":"","approvedDate":"","persona":"","address":"1 Cedar St, Woburn, MA 01801, USA","link":"https://www.benchmarkseniorliving.com/senior-living/ma/woburn/benchmark-senior-living-at-woburn","notes":"Highland Avenue, Winchester, MA 01890","log":[]},{"id":"R0043","name":"The Gables at Winchester","phone":"(781) 756-1026","programs":"","contact":"","status":"Approved","workDate":"2026-11-03","approvedDate":"2026-11-04","persona":"","address":"299 Cambridge St, Winchester, MA 01890, USA","link":"https://sinceriseniorliving.com/the-gables-at-winchester","notes":"Highland Avenue, Winchester, MA 01890","log":[]},{"id":"R0044","name":"The Residence at Bedford","phone":"(781) 226-2002","programs":"","contact":"","status":"Approved","workDate":"2026-11-03","approvedDate":"2026-11-04","persona":"","address":"240 South Rd, Bedford, MA 01730, USA","link":"https://www.lcbseniorliving.com/communities/the-residence-at-bedford","notes":"Highland Avenue, Winchester, MA 01890","log":[]},{"id":"R0045","name":"Brightview North Andover","phone":"(978) 938-4666","programs":"","contact":"","status":"Need approval","workDate":"2026-11-04","approvedDate":"","persona":"","address":"1275 Turnpike St, North Andover, MA 01845, USA","link":"https://www.brightviewseniorliving.com/find-a-community/brightview-north-andover","notes":"Crenshaw Lane, Andover, MA 01810 |||| Ethan wood. Grandparents William and Michelle wood","log":[]},{"id":"R0046","name":"Stonebridge at Burlington","phone":"(781) 358-8185","programs":"","contact":"","status":"Not started","workDate":"2026-11-04","approvedDate":"","persona":"","address":"50 Greenleaf Way, Burlington, MA 01803, USA","link":"https://northbridgecommunities.com/stonebridge-at-burlington","notes":"Crenshaw Lane, Andover, MA 01810 |||| Ethan wood. Grandparents William and Michelle wood","log":[]},{"id":"R0047","name":"The Residence at Melrose Station","phone":"(781) 620-8990","programs":"","contact":"","status":"Not started","workDate":"2026-11-04","approvedDate":"","persona":"","address":"158 Essex St, Melrose, MA 02176, USA","link":"https://www.lcbseniorliving.com/communities/residence-at-melrose-station","notes":"Crenshaw Lane, Andover, MA 01810 |||| Ethan wood. Grandparents William and Michelle wood","log":[]},{"id":"R0048","name":"Waterstone of Lexington","phone":"(781) 230-6455","programs":"","contact":"","status":"Need approval","workDate":"2026-11-04","approvedDate":"","persona":"","address":"55 Watertown St, Lexington, MA 02421, USA","link":"https://www.waterstonesl.com/lexington/contact-us","notes":"Crenshaw Lane, Andover, MA 01810 |||| Ethan wood. Grandparents William and Michelle wood","log":[]},{"id":"R0049","name":"The Commons in Lincoln","phone":"(781) 338-5985","programs":"","contact":"","status":"Not started","workDate":"2026-11-04","approvedDate":"","persona":"","address":"1 Harvest Cir, Lincoln, MA 01773, USA","link":"https://www.thecommonsinlincoln.com","notes":"","log":[]},{"id":"R0050","name":"Brightview Wakefield","phone":"(781) 667-0064","programs":"","contact":"","status":"Approved","workDate":"2026-11-04","approvedDate":"2026-11-04","persona":"","address":"21 Crescent St, Wakefield, MA 01880, USA","link":"https://www.brightviewseniorliving.com/find-a-community/brightview-wakefield","notes":"","log":[]},{"id":"R0051","name":"Center Court Senior Living","phone":"","programs":"","contact":"","status":"Approved","workDate":"2026-11-05","approvedDate":"2026-11-06","persona":"","address":"","link":"","notes":"","log":[]},{"id":"R0052","name":"Silver Creek Assisted Living","phone":"","programs":"","contact":"","status":"Need approval","workDate":"2026-11-05","approvedDate":"","persona":"","address":"","link":"","notes":"","log":[]}];
+const PER=[["2026-09-26","2026-10-09","2026-10-16"],["2026-10-10","2026-10-23","2026-10-30"],["2026-10-24","2026-11-06","2026-11-13"],["2026-11-07","2026-11-20","2026-11-27"],["2026-11-21","2026-12-04","2026-12-11"],["2026-12-05","2026-12-18","2026-12-25"],["2026-12-19","2027-01-01","2027-01-08"]];
+const ST=["Not started","In progress","Waiting for reply","Need approval","Approved","Block"],SC={"Not started":"Not","In progress":"Progress","Waiting for reply":"Waiting","Need approval":"Need","Approved":"Approved","Block":"Block"};
+const NT=["Call","Pricing","Contact info","Follow-up","Email","General"];
+const RATE=25,KEY="worklog.v2",OLDKEY="worklog.v1",TKEY="worklog.theme";
+const OKT={pdf:"application/pdf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",webp:"image/webp",csv:"text/csv",txt:"text/plain",md:"text/markdown",json:"application/json"};
+const $=i=>document.getElementById(i);
+const E=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())};
+const nowLocal=()=>{const d=new Date();return today()+"T"+pad(d.getHours())+":"+pad(d.getMinutes())};
+const clone=x=>JSON.parse(JSON.stringify(x));
+const uid=()=>"x"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const fd=d=>d?new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"}):"—";
+const fdt=d=>{if(!d)return"";const x=new Date(d);return isNaN(x)?d:x.toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})};
+const fxRate=()=>{const n=Number($("fxRate").value);return Number.isFinite(n)&&n>0?n:null};
+const php=n=>new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(n);
+const usd=n=>$("fxCurrency").value==="PHP"&&fxRate()?php(n*fxRate()):"$"+n.toLocaleString();
+let fxAmountSource="manual",fxRequest=0;
+function earnings(periodOnly=false){
+ const ap=S.records.filter(ok),cp=PER[Number($("fxPayPeriod").value)];
+ if(periodOnly)return cp?ap.filter(r=>r.approvedDate>=cp[0]&&r.approvedDate<=cp[1]).length*RATE:0;
+ const q4=ap.filter(r=>r.approvedDate>="2026-10-01"&&r.approvedDate<="2026-12-31").length;
+ return ap.length*RATE+(q4>=100?10:q4>=75?5:0);
+}
+function updateConversion(){
+ if(fxAmountSource!=="manual")$("fxAmount").value=earnings(fxAmountSource==="period");
+ const amount=Number($("fxAmount").value),rate=fxRate();
+ $("fxResult").textContent=!rate?"Enter a positive exchange rate.":$("fxAmount").value.trim()===""||!Number.isFinite(amount)||amount<0?"Enter a valid USD amount (0 or more).":php(amount*rate);
+ const cp=PER[Number($("fxPayPeriod").value)],total=earnings(true);
+ $("fxPeriodInfo").textContent=cp?`${fxAmountSource==="period"?"Converting":"Selected period:"} ${cp[0]} to ${cp[1]} · pays ${cp[2]} · ${total/RATE} approvals · $${total.toLocaleString()} USD. Based on approval dates; uses the current rate.`:"";
+ $("fxCurrency").options[1].disabled=!rate;
+ if(!rate)$("fxCurrency").value="USD";
+}
+function convertCurrency(){render()}
+async function loadExchangeRate(){
+ const request=++fxRequest,button=$("fxRefresh");button.disabled=true;
+ $("fxRateStatus").textContent="Loading latest web rate…";
+ try{
+  const response=await fetch("/.netlify/functions/exchange-rate",{cache:"no-store",signal:AbortSignal.timeout(15000)});
+  if(!response.ok)throw new Error("Rate unavailable");
+  const data=await response.json();
+  if(!Number.isFinite(data.rate)||data.rate<=0||!Number.isFinite(data.updatedAt))throw new Error("Invalid rate");
+  if(request!==fxRequest)return;
+  $("fxRate").value=data.rate;
+  $("fxRateStatus").textContent=`1 USD = ${data.rate} PHP · Updated ${new Date(data.updatedAt*1000).toLocaleString()} · ExchangeRate-API`;
+  convertCurrency();
+ }catch{
+  if(request===fxRequest)$("fxRateStatus").textContent="Web rate unavailable. Refresh to retry or enter your own rate.";
+ }finally{button.disabled=false}
+}
+const digits=s=>String(s||"").replace(/\D/g,"");
+const enc=encodeURIComponent;
+const per=d=>d&&PER.find(p=>d>=p[0]&&d<=p[1]);
+const ok=r=>r.status==="Approved"&&r.approvedDate;
+const openN=r=>r.todo.filter(t=>!t.done).length;
+const noP=r=>!r.persona&&!r.pPhone&&!r.pEmail;
+const size=n=>n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB";
+const mapUrl=(o,d)=>"https://www.google.com/maps/dir/?api=1&origin="+enc(o)+"&destination="+enc(d)+"&travelmode=driving";
+function norm(r){const o=Object.assign({id:"",name:"",phone:"",programs:"",contact:"",status:"Not started",workDate:"",approvedDate:"",persona:"",pPhone:"",pEmail:"",pAddr:"",pStory:"",address:"",link:"",notes:"",log:[],calls:[],todo:[],files:[]},r);["log","calls","todo","files"].forEach(k=>{if(!Array.isArray(o[k]))o[k]=[]});return o}
+const clean=r=>{const c=clone(r);delete c.isNew;return c};
+function stdTodo(p){const P=String(p||"").toUpperCase();const L=["Monthly base rate: studio","Monthly base rate: 1 bedroom","Monthly base rate: 2 bedroom","Community or entrance fee","Second person fee","Care levels and fees (assessment, tiers)","Medication management fee","Move-in deposit","Current move-in specials","Yearly rate increase","Contract terms and notice to leave","Tour availability and next openings","Staff name and title you spoke with","Brochure or pricing sheet received"];if(P.indexOf("MC")>-1)L.splice(5,0,"Memory care monthly rate");return L.map(t=>({id:uid(),t:t,v:"",done:false}))}
+const newRec=()=>norm({id:"W"+Date.now().toString(36),name:"",status:"Not started",workDate:today(),todo:stdTodo("")});
+
+let S={records:[],personas:[],loading:true},mode="",DB=null,ASSETS=null,SAMPLE=null,DL=null;
+let flt="All",sk="workDate",sd=-1,cur=null,curNew=false,tmr=0,editNote=null,advRes=null,revRes=null,scanRes=[],planRes=[],planDone=new Set(),pEdit=null,seeding=false;
+async function api(path,options={}){
+ const response=await fetch(path,options);let data;try{data=await response.json()}catch{throw new Error(response.status===413?'Choose a file under 4 MB.':'The server could not complete this request. Please retry.')};
+ if(!response.ok)throw new Error(data.error||"Request failed");return data;
+}
+async function sample(prompt,options={}){
+ let image;
+ if(options.images){const file=options.images;if(file.size>3*1024*1024)throw new Error("Choose a photo under 3 MB.");image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
+ try{const result=await api('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:Array.isArray(prompt)?prompt:[{role:'user',content:prompt}],json:!!options.json,image}),signal:options.signal});if(options.onText)options.onText(result);return result}
+ catch(e){if(e.name==='AbortError')e.code='cancelled';throw e}
+}
+sample.json=async(prompt,options={})=>{const r=await sample(prompt,{...options,json:true});try{const data=JSON.parse(r.text);return Array.isArray(data.items)?data.items:data}catch{throw new Error('The AI answer could not be read. Please try again.')}};
+sample.limits=async()=>({images:true});
+const DBAPI={doc:path=>({set:data=>api('/api/log?path='+enc(path),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}),delete:()=>api('/api/log?path='+enc(path),{method:'DELETE'}),get:async()=>{const data=await api('/api/log?path='+enc(path));return {exists:!!data,data:()=>data}}})};
+const fileUrl=f=>'/api/files?id='+enc(f.id)+'&name='+enc(f.name||'attachment');
+const FILEAPI={
+ upload:async(f,options={})=>{if(!f.size||f.size>4*1024*1024)throw new Error('Choose a nonempty file under 4 MB.');return api('/api/files',{method:'POST',headers:{'Content-Type':options.type||f.type||'application/octet-stream'},body:f})},
+ delete:id=>api('/api/files?id='+enc(id),{method:'DELETE'})
+};
+const use=async n=>n==='sample'?sample:n==='db'?DBAPI:n==='assets'?FILEAPI:null;
+
+/* ---------- storage ---------- */
+const chains=new Map();
+function setSync(msg,err){const el=$("sync");if(!msg){el.hidden=true;return}el.hidden=false;el.textContent=msg;el.className="sync"+(err?" bad":"")}
+function wr(path,data){const prev=chains.get(path)||Promise.resolve();const p=prev.then(()=>DB.doc(path).set(data)).catch(e=>{setSync("Could not save to your account ("+((e&&e.code)||"error")+"). Your last change may be missing.",true);return false});chains.set(path,p);return p}
+function rmDoc(path){const prev=chains.get(path)||Promise.resolve();const p=prev.then(()=>DB.doc(path).delete()).catch(()=>{});chains.set(path,p);return p}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify({version:2,records:S.records,personas:S.personas}))}catch(e){}}
+function loadLocal(){try{const r=localStorage.getItem(KEY)||localStorage.getItem(OLDKEY);if(r){const j=JSON.parse(r);if(j&&Array.isArray(j.records))return{records:j.records.map(norm),personas:Array.isArray(j.personas)?j.personas:[]}}}catch(e){}return{records:SEED.map(x=>norm(clone(x))),personas:[]}}
+function persistRec(r){if(mode==="db")return wr("works/"+r.id,clean(r));saveLocal();return Promise.resolve()}
+function persistPers(p){if(mode==="db")return wr("personas/"+p.id,clone(p));saveLocal();return Promise.resolve()}
+function commit(rec){const c=clean(rec),i=S.records.findIndex(x=>x.id===c.id);if(i<0)S.records.unshift(c);else S.records[i]=c;const p=persistRec(c);render();return p}
+function commitPers(p){const i=S.personas.findIndex(x=>x.id===p.id);if(i<0)S.personas.push(p);else S.personas[i]=p;const q=persistPers(p);renderPers();render();return q}
+async function startDb(){
+ try{
+  const [records,personas]=await Promise.all([api('/api/log?path=works'),api('/api/log?path=personas')]);
+  S={records:records.map(norm),personas,loading:false};
+  if(!records.length){const marker=await DB.doc('meta/state').get();if(!marker.exists){const legacy=loadLocal();for(const r of legacy.records)await DB.doc('works/'+r.id).set(clean(r));for(const p of legacy.personas)await DB.doc('personas/'+p.id).set(p);await DB.doc('meta/state').set({seeded:true});S.records=legacy.records;S.personas=legacy.personas}}
+  render();setSync('');
+ }catch{S.loading=false;setSync('Could not load your saved log. Reload to try again.',true);render()}
+}
+async function maybeSeed(empty){
+ if(!empty)return;
+ try{const m=await DB.doc("meta/state").get();if(m.exists)return}catch(e){return}
+ seeding=true;
+ const L=loadLocal();
+ for(let i=0;i<L.records.length;i++){setSync("Setting up your work log... "+(i+1)+" of "+L.records.length);await wr("works/"+L.records[i].id,clean(L.records[i]))}
+ for(const p of L.personas)await wr("personas/"+p.id,clone(p));
+ await wr("meta/state",{seeded:true,at:Date.now()});
+ seeding=false;setSync("");
+}
+
+/* ---------- page render ---------- */
+function render(){
+ updateConversion();
+ const R=S.records,ap=R.filter(ok),cnt=s=>R.filter(r=>r.status===s).length,t=today();
+ if(S.loading&&!R.length){
+  $("stats").innerHTML='<div class="card stat"><b>Loading</b><span>Getting your work log</span></div>';$("pipe").innerHTML="";$("pp").innerHTML="";
+ }else{
+  const q4=ap.filter(r=>r.approvedDate>="2026-10-01"&&r.approvedDate<="2026-12-31").length,bonus=q4>=100?10:q4>=75?5:0;
+  const cp=per(t)||PER.find(p=>p[1]>=t)||PER[PER.length-1],inP=ap.filter(r=>r.approvedDate>=cp[0]&&r.approvedDate<=cp[1]).length;
+  const openTot=R.reduce((n,r)=>n+openN(r),0),openFac=R.filter(r=>openN(r)>0).length;
+  $("stats").innerHTML=`<div class="card stat hero"><b>${usd(ap.length*RATE+bonus)}</b><span>Earned (${ap.length} approved × $${RATE}${bonus?" + $"+bonus+" bonus":""})</span></div>
+  <div class="card stat"><b>${usd(inP*RATE)}</b><span>This pay period · pays ${fd(cp[2])}</span></div>
+  <div class="card stat"><b>${cnt("Waiting for reply")+cnt("Need approval")}</b><span>Waiting or need approval</span></div>
+  <div class="card stat"><b>${cnt("Block")}</b><span>Blocked</span></div>
+  <div class="card stat"><b>${R.filter(noP).length}</b><span>No persona recorded yet</span></div>
+  <div class="card stat"><b>${openTot}</b><span>Items to collect across ${openFac} ${openFac===1?"facility":"facilities"}</span></div>
+  <div class="card stat"><b>${q4}/75</b><span>Q4 approvals toward $5 bonus</span><div class="prog"><i style="width:${Math.min(100,q4/75*100)}%"></i></div></div>`;
+  $("pipe").innerHTML=`<div class="bar">${ST.map(s=>cnt(s)?`<i class="s-${SC[s]}" style="width:${cnt(s)/R.length*100}%;background:currentColor"></i>`:"").join("")}</div><div class="leg">${ST.map(s=>`<span class="s-${SC[s]}"><span class="dot" style="background:currentColor"></span>${s} ${cnt(s)}</span>`).join("")}</div>`;
+  $("pp").innerHTML=`<div class="sub">`+PER.map(p=>{const n=ap.filter(r=>r.approvedDate>=p[0]&&r.approvedDate<=p[1]).length;return `<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 0;${p===cp?"font-weight:700;color:var(--tx)":""}"><span>${fd(p[0])} – ${fd(p[1])} → pays ${fd(p[2])}</span><span>${n} · ${usd(n*RATE)}</span></div>`}).join("")+`</div>`;
+ }
+ const CH=[["All",R.length]].concat(ST.map(s=>[s,cnt(s)]),[["No persona",R.filter(noP).length],["Open items",R.filter(r=>openN(r)>0).length]]);
+ $("chips").innerHTML=CH.map(c=>`<button class="chip" aria-pressed="${flt===c[0]}" data-s="${E(c[0])}">${E(c[0])}<span class="n">${c[1]}</span></button>`).join("");
+ const q=$("q").value.toLowerCase().trim();
+ const match=r=>flt==="All"?true:flt==="No persona"?noP(r):flt==="Open items"?openN(r)>0:r.status===flt;
+ const hay=r=>[r.name,r.persona,r.pPhone,r.pEmail,r.pAddr,r.pStory,r.phone,r.contact,r.notes,r.address,r.programs].concat(r.log.map(l=>l.t),r.calls.map(c=>c.text+" "+(c.who||"")),r.todo.map(x=>x.t+" "+x.v),r.files.map(f=>f.name+" "+(f.note||""))).join(" ").toLowerCase();
+ const kv=(r,k)=>k==="todo"?openN(r):(r[k]||"");
+ const L=R.filter(r=>match(r)&&(!q||hay(r).indexOf(q)>-1)).sort((a,b)=>{const x=kv(a,sk),y=kv(b,sk);return(x<y?-1:x>y?1:0)*sd});
+ $("body").innerHTML=L.length?L.map(row).join(""):`<tr><td colspan="7" class="empty">${S.loading&&!R.length?"Loading your work log...":"No works match. Clear the search or add a new work."}</td></tr>`;
+ const names=[];const seen=new Set();S.personas.map(p=>p.name).concat(R.map(r=>r.persona)).forEach(n=>{n=String(n||"").trim();const k=n.toLowerCase();if(n&&!seen.has(k)){seen.add(k);names.push(n)}});
+ $("pl").innerHTML=names.map(n=>`<option value="${E(n)}">`).join("");
+}
+function latest(r){if(r.calls.length){const n=r.calls.slice().sort((a,b)=>(b.d||"").localeCompare(a.d||""))[0];return n.type+": "+n.text.replace(/\s+/g," ").slice(0,70)}const l=r.log[r.log.length-1];if(l)return l.t;return(r.notes||"").slice(0,70)}
+function pcell(r){if(noP(r))return'<span class="sub">Not set</span>';return`<div class="pn">${E(r.persona||"No name yet")}</div><div class="sub">${[r.pPhone,r.pEmail].filter(Boolean).map(E).join(" · ")||"No number or email yet"}</div>`+(r.pAddr?`<div class="sub">${E(r.pAddr)}</div>`:"")}
+function row(r){const o=openN(r),tot=r.todo.length;return`<tr data-id="${E(r.id)}"><td><span class="nm">${E(r.name)}</span><div class="sub">${E(r.programs)}${r.phone?(r.programs?" · ":"")+E(r.phone):""}</div></td><td>${pcell(r)}</td><td><select class="st s-${SC[r.status]||"Not"}" data-id="${E(r.id)}" aria-label="Status for ${E(r.name)}">${ST.map(s=>`<option${s===r.status?" selected":""}>${s}</option>`).join("")}</select></td><td>${fd(r.workDate)}</td><td><input class="in approval-date" type="date" data-id="${E(r.id)}" value="${E(r.approvedDate)}" aria-label="Approved date for ${E(r.name)}"></td><td>${tot?`<span class="pill ${o?"s-Waiting":"s-Approved"}">${o?o+" open":"All done"}</span><div class="sub">${tot-o} of ${tot} collected</div>`:'<span class="sub">Not set up</span>'}</td><td class="sub">${E(latest(r))}</td></tr>`}
+
+/* ---------- helpers ---------- */
+function ask(msg,okTxt){return new Promise(res=>{const d=$("cf");let v=false;$("cfm").textContent=msg;$("cfok").textContent=okTxt||"Confirm";$("cfok").onclick=()=>{v=true;d.close()};$("cfno").onclick=()=>d.close();d.addEventListener("close",()=>res(v),{once:true});d.showModal()})}
+function arm(b){if(b.dataset.armed)return true;b.dataset.armed="1";b.dataset.t=b.textContent;b.textContent="Confirm";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=b.dataset.t}},3000);return false}
+function busy(b,on,txt){if(!b)return;if(on){b.dataset.t=b.textContent;b.disabled=true;b.textContent=txt||"Working..."}else{b.disabled=false;if(b.dataset.t)b.textContent=b.dataset.t}}
+const aiErr=e=>{if(e&&e.message&&e.code!=="cancelled")return e.message;const c=e&&e.code;return c==="not_granted"?"AI is turned off for this page. Reload and allow Claude to run when asked.":c==="rate_limited"?"Too many AI requests right now. Wait a minute, then try again.":c==="invalid_json"?"The AI answer could not be read. Try again.":c==="cancelled"?"Stopped.":c==="prompt_too_large"?"There is too much data for one AI request.":"The AI request failed. Try again in a moment."};
+const libFind=n=>{n=String(n||"").trim().toLowerCase();return n?S.personas.find(p=>p.name.trim().toLowerCase()===n):null};
+
+/* ---------- facility dialog ---------- */
+function openDlg(id,tab){
+ const src=id&&S.records.find(r=>r.id===id);
+ cur=src?norm(clone(src)):newRec();curNew=!src;editNote=null;advRes=null;revRes=null;
+ $("dt").textContent=src?cur.name:"Add work";$("dsub").textContent="";
+ $("dst").innerHTML=ST.map(s=>`<option>${s}</option>`).join("");
+ document.querySelectorAll("#dlg [data-f]").forEach(el=>{el.value=cur[el.dataset.f]||""});
+ $("rmrow").hidden=true;$("rmbtn").hidden=curNew;
+ $("advOut").innerHTML="";$("revOut").innerHTML="";$("nAiMsg").textContent="";$("flMsg").textContent="";
+ resetComposer();setTab(tab||"ov");renderNotes();renderTodo();renderFiles();counts();dup();
+ $("dlg").showModal();
+ if(curNew)$("f-name").focus();
+}
+function setTab(t){["ov","nt","td","fl"].forEach(k=>{$("t-"+k).hidden=k!==t});document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.t===t)))}
+function touch(){clearTimeout(tmr);$("dsub").textContent="Saving...";tmr=setTimeout(flush,500)}
+function flush(){clearTimeout(tmr);if(!cur)return;if(!cur.name.trim()){$("dsub").textContent="Enter a facility name to save.";return}commit(cur);curNew=false;$("rmbtn").hidden=false;$("dsub").textContent="Saved"}
+function counts(){$("cNt").textContent=cur.calls.length||"";$("cTd").textContent=cur.todo.length?openN(cur)+" open":"";$("cFl").textContent=cur.files.length||""}
+function setPersona(o){Object.keys(o).forEach(k=>{cur[k]=o[k]||"";const el=$("f-"+k);if(el)el.value=cur[k]});dup();touch()}
+function dup(){const out=[],ph=digits(cur.pPhone),em=String(cur.pEmail||"").trim().toLowerCase();S.records.forEach(r=>{if(r.id===cur.id)return;const hit=[];if(ph.length>=7&&digits(r.pPhone)===ph)hit.push("number");if(em&&String(r.pEmail||"").trim().toLowerCase()===em)hit.push("email");if(hit.length)out.push(r.name+" ("+hit.join(" and ")+")")});const m=$("dupMsg");m.hidden=!out.length;m.textContent=out.length?"Already used at: "+out.join("; "):""}
+$("dlg").addEventListener("input",e=>{const el=e.target,f=el.dataset&&el.dataset.f;if(!f||!cur||f==="status")return;cur[f]=el.value;if(f==="name")$("dt").textContent=cur.name||"Add work";if(f==="pPhone"||f==="pEmail")dup();touch()});
+$("dlg").addEventListener("change",e=>{const el=e.target,f=el.dataset&&el.dataset.f;if(!f||!cur)return;
+ if(f==="status"){cur.status=el.value;if(cur.status==="Approved"&&!cur.approvedDate){cur.approvedDate=today();$("f-approvedDate").value=cur.approvedDate}cur.log.push({d:today(),t:"Status → "+cur.status});renderHist();flush()}
+ if(f==="persona"){const p=libFind(el.value);if(p){const o={};[["pPhone","phone"],["pEmail","email"],["pAddr","addr"],["pStory","story"]].forEach(m=>{if(!cur[m[0]]&&p[m[1]])o[m[0]]=p[m[1]]});if(Object.keys(o).length)setPersona(o)}}});
+$("dlg").addEventListener("close",()=>{flush();cur=null;clearTimeout(tmr)});
+$("tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b)setTab(b.dataset.t)});
+$("rmbtn").onclick=()=>{$("rmrow").hidden=false;$("rmbtn").hidden=true};
+$("rmno").onclick=()=>{$("rmrow").hidden=true;$("rmbtn").hidden=false};
+$("rmyes").onclick=()=>{const id=cur.id,files=cur.files.slice();S.records=S.records.filter(r=>r.id!==id);if(mode==="db")rmDoc("works/"+id);else saveLocal();if(ASSETS)files.forEach(f=>{ASSETS.delete(f.id).catch(()=>{})});clearTimeout(tmr);cur=null;$("dlg").close();render()};
+
+/* ---------- call notes ---------- */
+function resetComposer(){editNote=null;$("nType").innerHTML=NT.map(t=>`<option>${t}</option>`).join("");$("nType").value="Call";$("nWhen").value=nowLocal();$("nWho").value=[cur.persona,cur.pPhone,cur.pEmail].filter(Boolean).join(" · ");$("nText").value="";$("nAdd").textContent="Add note";$("nCancel").hidden=true}
+function renderNotes(){
+ const L=cur.calls.slice().sort((a,b)=>(b.d||"").localeCompare(a.d||""));
+ $("nList").innerHTML=L.length?L.map(n=>`<article class="note-c" data-n="${E(n.id)}"><div class="nh"><span class="pill ${n.type==="Pricing"?"s-Need":"s-Not"}">${E(n.type)}</span><time>${E(fdt(n.d))}</time>${n.who?`<span class="sub">${E(n.who)}</span>`:""}<span class="sp"></span><button class="lnk" data-a="ne">Edit</button><button class="lnk del" data-a="nd">Delete</button></div><div class="nb">${E(n.text)}</div></article>`).join(""):'<div class="empty sm">No notes yet. Add what you learn on each call: prices, names, promises and next steps.</div>';
+ renderHist();
+}
+function renderHist(){$("hist").innerHTML=cur.log.length?'<div class="sub" style="margin-top:14px">Status history</div><ul class="hist">'+cur.log.slice().reverse().map(l=>`<li>${E(fd(l.d))} · ${E(l.t)}</li>`).join("")+"</ul>":""}
+$("nAdd").onclick=()=>{if(!cur)return;const t=$("nText").value.trim();if(!t)return;const rec={type:$("nType").value,d:$("nWhen").value||nowLocal(),who:$("nWho").value.trim(),text:t};if(editNote){const n=cur.calls.find(x=>x.id===editNote);if(n)Object.assign(n,rec)}else cur.calls.push(Object.assign({id:uid()},rec));resetComposer();renderNotes();counts();flush()};
+$("nCancel").onclick=()=>resetComposer();
+$("nTpl").onclick=()=>{$("nType").value="Pricing";const tpl="Studio: $\n1 bedroom: $\n2 bedroom: $\nCommunity fee: $\nSecond person: $\nCare fees and levels: \nMedication management: \nMove-in specials: \nRate increases: \nSpoke with: \nNext step: ";$("nText").value=($("nText").value?$("nText").value+"\n":"")+tpl;$("nText").focus()};
+$("t-nt").addEventListener("click",e=>{
+ const b=e.target.closest("[data-a]");if(!b||!cur)return;const a=b.dataset.a,nid=(b.closest("[data-n]")||{dataset:{}}).dataset.n;
+ if(a==="ne"){const n=cur.calls.find(x=>x.id===nid);if(!n)return;editNote=nid;$("nType").value=n.type;$("nWhen").value=n.d;$("nWho").value=n.who||"";$("nText").value=n.text;$("nAdd").textContent="Save changes";$("nCancel").hidden=false;$("nText").focus()}
+ else if(a==="nd"){if(!arm(b))return;cur.calls=cur.calls.filter(x=>x.id!==nid);renderNotes();counts();flush()}
+ else if(a==="rvA"&&revRes){(revRes.answers||[]).forEach(x=>{const it=cur.todo.find(t=>t.id===x.id);if(it&&x.value){it.v=String(x.value);it.done=true}});renderTodo();counts();flush();b.textContent="Applied";b.disabled=true}
+ else if(a==="rvF"&&revRes){(revRes.followUps||[]).forEach(t=>addTodo(String(t)));renderTodo();counts();flush();b.textContent="Added";b.disabled=true}
+ else if(a==="rvS"&&revRes&&revRes.summary){cur.calls.push({id:uid(),type:"Pricing",d:nowLocal(),who:"AI summary",text:String(revRes.summary)});renderNotes();counts();flush();b.textContent="Saved";b.disabled=true}
+});
+
+/* ---------- data to collect ---------- */
+function addTodo(t){t=String(t||"").trim();if(!t||!cur)return;if(cur.todo.some(x=>x.t.toLowerCase()===t.toLowerCase()))return;cur.todo.push({id:uid(),t:t,v:"",done:false})}
+function prog(){const d=cur.todo.filter(t=>t.done).length;$("tdProg").textContent=cur.todo.length?d+" of "+cur.todo.length+" collected":"Nothing listed yet"}
+function renderTodo(){
+ $("tdList").innerHTML=cur.todo.length?cur.todo.map(t=>`<div class="ti${t.done?" dn":""}" data-i="${E(t.id)}"><input type="checkbox" class="tc" aria-label="Collected"${t.done?" checked":""}><input class="tl" data-k="t" value="${E(t.t)}" aria-label="Item"><input class="tv" data-k="v" value="${E(t.v||"")}" placeholder="Answer or amount" aria-label="Answer"><button class="lnk del" data-a="tx" aria-label="Remove item">Remove</button></div>`).join(""):'<div class="empty sm">Nothing listed yet. Add the data you still need from this facility, or start with the standard list.</div>';
+ prog();
+}
+$("tdList").addEventListener("input",e=>{const row=e.target.closest(".ti");if(!row||!cur)return;const it=cur.todo.find(x=>x.id===row.dataset.i),k=e.target.dataset.k;if(it&&k){it[k]=e.target.value;touch()}});
+$("tdList").addEventListener("change",e=>{if(!e.target.classList.contains("tc")||!cur)return;const row=e.target.closest(".ti"),it=cur.todo.find(x=>x.id===row.dataset.i);if(!it)return;it.done=e.target.checked;row.classList.toggle("dn",it.done);counts();prog();flush()});
+$("tdList").addEventListener("click",e=>{const b=e.target.closest('[data-a="tx"]');if(!b||!cur)return;cur.todo=cur.todo.filter(x=>x.id!==b.closest(".ti").dataset.i);renderTodo();counts();flush()});
+$("tdAdd").onclick=()=>{addTodo($("tdNew").value);$("tdNew").value="";renderTodo();counts();flush()};
+$("tdNew").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("tdAdd").click()}});
+$("tdStd").onclick=()=>{stdTodo(cur.programs).forEach(x=>addTodo(x.t));renderTodo();counts();flush()};
+
+/* ---------- files ---------- */
+function typeOf(f){const ext=(f.name.split(".").pop()||"").toLowerCase();if(OKT[ext])return OKT[ext];return Object.keys(OKT).some(k=>OKT[k]===f.type)?f.type:null}
+const upErr=e=>{const c=e&&e.code;return c==="too_large"?"is over the 4 MB limit.":c==="unsupported_type"?"is not a supported file type.":c==="quota_or_state"?"could not be stored because storage is full.":c==="rate_limited"?"was skipped because uploads are coming too fast. Try again shortly.":"could not be uploaded. Try again."};
+function renderFiles(){
+ $("flZone").hidden=false;
+ $("flList").innerHTML=cur.files.length?cur.files.map(f=>{const u=E(fileUrl(f));return`<div class="fi" data-i="${E(f.id)}"><span class="ft">${E((f.name.split(".").pop()||"file").slice(0,4).toUpperCase())}</span><div><a href="${u}" target="_blank" rel="noopener">${E(f.name)}</a><div class="sub">${E(size(f.size||0))} · added ${E(fd(f.d))}</div><input class="fnote" value="${E(f.note||"")}" placeholder="What is this? e.g. price sheet from call" aria-label="File note"></div>${String(f.type||"").startsWith("audio/")?`<button class="btn" data-a="transcribe">Transcribe</button>`:""}<button class="lnk del" data-a="fx">Delete</button></div>`}).join(""):'<div class="empty sm">No files yet. Attach the price sheets and PDFs you get from calling.</div>';
+}
+async function upFiles(list){
+ const c=cur;if(!ASSETS||!c)return;
+ if(!c.name.trim()){$("flMsg").textContent="Enter the facility name on the Overview tab first.";return}
+ for(const f of list){
+  const ty=f.type||typeOf(f)||"application/octet-stream";
+  $("flMsg").textContent="Uploading "+f.name+"...";
+  try{const r=await ASSETS.upload(f,{type:ty});c.files.push({id:r.id,name:f.name,type:r.contentType,size:r.sizeBytes,d:today(),note:""});const saved=await commit(c);if(saved===false)throw new Error('File uploaded, but the attachment could not be saved to the log. Retry saving before closing.');if(cur===c){renderFiles();counts()}$("flMsg").textContent="Uploaded "+f.name;}
+  catch(e){$("flMsg").textContent=f.name+": "+(e.message||upErr(e))}
+ }
+}
+$("flBtn").onclick=()=>$("fUp").click();
+$("fUp").onchange=e=>{const l=[].slice.call(e.target.files);e.target.value="";upFiles(l)};
+const zone=$("flZone");
+["dragenter","dragover"].forEach(n=>zone.addEventListener(n,e=>{e.preventDefault();zone.classList.add("on")}));
+["dragleave","drop"].forEach(n=>zone.addEventListener(n,e=>{e.preventDefault();zone.classList.remove("on")}));
+zone.addEventListener("drop",e=>{const l=[].slice.call((e.dataTransfer&&e.dataTransfer.files)||[]);if(l.length)upFiles(l)});
+$("flList").addEventListener("change",e=>{if(!e.target.classList.contains("fnote")||!cur)return;const f=cur.files.find(x=>x.id===e.target.closest(".fi").dataset.i);if(f){f.note=e.target.value;flush()}});
+$("flList").addEventListener("click",async e=>{
+ const b=e.target.closest('[data-a]');if(!b||!cur)return;const c=cur,id=b.closest(".fi").dataset.i,f=c.files.find(f=>f.id===id);
+ if(b.dataset.a==='transcribe'){
+  if(recBusy||recorder)return;setTab('nt');setRecordingBusy(true);
+  try{const response=await fetch(fileUrl(f));if(!response.ok)throw new Error('Could not read the audio file.');await transcribeCall(new Blob([await response.arrayBuffer()],{type:f.type}),c)}catch(x){$("recStatus").textContent=x.message}finally{setRecordingBusy(false)}return;
+ }
+ if(b.dataset.a!=='fx'||!arm(b))return;
+ try{await ASSETS.delete(id);c.files=c.files.filter(f=>f.id!==id);await commit(c);if(cur===c){renderFiles();counts()}}catch(x){$("flMsg").textContent=x.message}
+});
+
+/* ---------- call recording and transcription ---------- */
+let recorder=null,recStreams=[],recContext=null,recTimer=null,recTicker=null,recBusy=false,lastRecordingUrl=null;
+function setRecordingBusy(value){recBusy=value;$("recStart").disabled=value;$("recUpload").disabled=value;$("recSource").disabled=value;$("dn").disabled=value;$("rmbtn").disabled=value;$("rmyes").disabled=value}
+function releaseRecording(){clearTimeout(recTimer);clearInterval(recTicker);recStreams.forEach(s=>s.getTracks().forEach(t=>t.stop()));recStreams=[];if(recContext){recContext.close().catch(()=>{});recContext=null}recorder=null;$("recStop").disabled=true}
+function stopRecording(){if(recorder&&recorder.state==='recording'){$("recStop").disabled=true;recorder.stop()}}
+$("recStop").onclick=stopRecording;
+$("dlg").addEventListener('cancel',e=>{if(recBusy){e.preventDefault();$("recStatus").textContent='Stop recording and wait for processing before closing.'}});
+window.addEventListener('beforeunload',e=>{if(recBusy){e.preventDefault();e.returnValue=''}});
+async function saveCallAudio(blob,c,name){
+ const f=new File([blob],name,{type:blob.type});
+ const uploaded=await FILEAPI.upload(f);c.files.push({id:uploaded.id,name,type:blob.type,size:f.size,d:today(),note:'Call recording'});
+ if(await commit(c)===false)throw new Error('Recording uploaded, but saving the attachment failed. Download the recording as a backup.');
+ if(cur===c){renderFiles();counts()}return uploaded;
+}
+async function transcribeCall(blob,c){
+ $("recStatus").textContent='Transcribing audio…';
+ const result=await api('/api/transcribe',{method:'POST',headers:{'Content-Type':blob.type.split(';')[0]},body:blob});
+ if(result.text.trim()==='[No intelligible speech]')throw new Error('No intelligible speech detected. Check the microphone and shared-tab audio, then try again.');
+ c.calls.push({id:uid(),type:'Call',d:nowLocal(),who:'Audio transcript — review for accuracy',text:result.text});
+ if(await commit(c)===false)throw new Error('Transcript could not be saved. Keep this page open and retry saving.');
+ if(cur===c){renderNotes();counts();$("recStatus").textContent='Transcript saved. Preparing shop notes with pricing and follow-up questions…';await runReview();$("recStatus").textContent='Transcript saved. Review the summary below and use Save summary. If the summary failed, choose Review notes to retry.';setTab('nt')}
+}
+$("recStart").onclick=async()=>{
+ if(recBusy||!cur)return;const c=cur;if(!c.name.trim()){$("recStatus").textContent='Enter a facility name on Overview first.';return}
+ if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){$("recStatus").textContent='Recording is unavailable in this browser. Use Chrome or Edge on HTTPS, or upload an audio file.';return}
+ setRecordingBusy(true);$("recStatus").textContent='Waiting for audio permission…';
+ try{
+  let shared;
+  if($("recSource").value==='tab'){
+   if(!navigator.mediaDevices.getDisplayMedia)throw new Error('Tab audio sharing is unavailable. Use microphone / speakerphone or upload a recording.');
+   shared=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});recStreams.push(shared);
+   if(!shared.getAudioTracks().length)throw new Error('No call audio was shared. Select the call tab and enable Share tab audio, then retry.');
+  }
+  const mic=await navigator.mediaDevices.getUserMedia({audio:true});recStreams.push(mic);
+  let stream=mic;
+  if(shared){recContext=new AudioContext();await recContext.resume();const mix=recContext.createMediaStreamDestination();[shared,mic].forEach(s=>recContext.createMediaStreamSource(new MediaStream(s.getAudioTracks())).connect(mix));stream=mix.stream;recStreams.push(stream)}
+  const mime=['audio/webm;codecs=opus','audio/mp4','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t));
+  recorder=new MediaRecorder(stream,{...(mime?{mimeType:mime}:{}),audioBitsPerSecond:32000});
+  const chunks=[];let recordedBytes=0;const started=Date.now();
+  recorder.ondataavailable=e=>{if(e.data.size){chunks.push(e.data);recordedBytes+=e.data.size;if(recordedBytes>3500000)stopRecording()}};
+  recorder.onerror=()=>{$("recStatus").textContent='Audio recording encountered an error. Check the recording before using its transcript.';stopRecording()};
+  recorder.onstop=async()=>{
+   const type=recorder.mimeType;const blob=new Blob(chunks,{type});releaseRecording();
+   if(lastRecordingUrl)URL.revokeObjectURL(lastRecordingUrl);lastRecordingUrl=URL.createObjectURL(blob);
+   const ext=type.includes('mp4')?'mp4':type.includes('ogg')?'ogg':'webm';const name='call-'+today()+'-'+Date.now()+'.'+ext;
+   const link=$("recDownload");link.href=lastRecordingUrl;link.download=name;link.hidden=false;
+   try{$("recStatus").textContent='Saving recording…';await saveCallAudio(blob,c,name);await transcribeCall(blob,c)}catch(e){$("recStatus").textContent=e.message+' Download the recording as a backup. Saved audio can be transcribed again from Files.'}finally{setRecordingBusy(false)}
+  };
+  recorder.start(1000);$("recStop").disabled=false;
+  recStreams.forEach(s=>s.getTracks().forEach(t=>t.addEventListener('ended',stopRecording)));
+  const tick=()=>{const elapsed=Math.floor((Date.now()-started)/1000);$("recStatus").textContent='Recording '+Math.floor(elapsed/60)+':'+pad(elapsed%60)+' · '+(shared?'call tab + microphone':'microphone / speakerphone')+' · stops at 8:00'};tick();recTicker=setInterval(tick,1000);recTimer=setTimeout(stopRecording,8*60*1000);
+ }catch(e){releaseRecording();setRecordingBusy(false);$("recStatus").textContent=e.name==='NotAllowedError'?'Audio permission was denied or sharing was cancelled. Allow access and retry.':e.message}
+};
+$("recUpload").onclick=()=>$("recFile").click();
+$("recFile").onchange=async e=>{
+ const f=e.target.files[0];e.target.value='';if(!f||!cur||recBusy)return;const c=cur;
+ if(!c.name.trim()){$("recStatus").textContent='Enter a facility name on Overview first.';return}
+ if(!f.size||f.size>4*1024*1024){$("recStatus").textContent='Choose a nonempty audio file under 4 MB.';return}
+ const types={webm:'audio/webm',mp4:'audio/mp4',m4a:'audio/mp4',mp3:'audio/mpeg',wav:'audio/wav',ogg:'audio/ogg'};const type=types[f.name.split('.').pop().toLowerCase()]||f.type;
+ const blob=new Blob([f],{type});setRecordingBusy(true);
+ try{await saveCallAudio(blob,c,f.name);await transcribeCall(blob,c)}catch(x){$("recStatus").textContent=x.message}finally{setRecordingBusy(false)}
+};
+
+/* ---------- AI: persona advisor for one facility ---------- */
+async function runAdv(){
+ if(!SAMPLE||!cur)return;const c=cur,out=$("advOut");
+ if(!c.address.trim()){out.innerHTML='<div class="msg">Add the facility address first, in the facility fields above.</div>';return}
+ const others=S.records.filter(r=>r.id!==c.id&&r.pAddr&&r.address);
+ const list=others.map(r=>[r.id,r.name,r.address,r.persona||"(no name)",r.pAddr,r.pPhone||"-",r.pEmail||"-"].join(" | ")).join("\n");
+ const prompt=`You are helping a US senior-living mystery shopper choose the home address a caller persona claims when phoning a community. You have no internet or map access, so use your best knowledge of US geography to estimate road distances, and say so in "warnings" when you are unsure.
+
+TARGET COMMUNITY
+Name: ${c.name}
+Address: ${c.address}
+${c.notes?"Shopper's own note: "+c.notes.slice(0,300):""}
+
+RULE 1 (new address): the persona's home address must be about 10 to 12 miles by road from the target community's address, in a real town or neighborhood with ordinary residential streets.
+RULE 2 (reuse): a persona and home address already used for another community may be reused for the target when that other community is within about 20 miles or about 30 minutes' drive of the target.
+
+ALREADY USED (id | community | community address | persona | persona home address | number | email):
+${list||"(none yet)"}
+
+Reply with only JSON in this shape:
+{"reuse":[{"id":"<id from the list>","miles":<estimated road miles between that community and the target>,"minutes":<estimated drive minutes>,"homeMiles":<estimated road miles from that persona's home address to the target>,"note":"<short caution or reason>"}],"newAddresses":[{"address":"<street name, town, state ZIP>","miles":<estimated road miles to the target, 10 to 12>,"why":"<few words: direction and town>"}],"warnings":["<anything uncertain>"]}
+Put in "reuse" only entries that satisfy rule 2 (miles at most 20 or minutes at most 30), nearest first, at most 5, and only ids from the list. Give exactly 3 newAddresses in different towns or directions, each with a street name and no house number.`;
+ busy($("advGo"),true,"Thinking...");out.innerHTML='<div class="msg">Estimating distances. This can take up to a minute.</div>';
+ try{advRes=await SAMPLE.json(prompt,{cache:false});if(!advRes||!Array.isArray(advRes.newAddresses))throw new Error("No valid address suggestions came back. Try again.");advRes.newAddresses=advRes.newAddresses.filter(x=>x&&typeof x.address==='string'&&x.miles>=10&&x.miles<=12).slice(0,3);if(advRes.newAddresses.length!==3)throw new Error("AI did not return three addresses in the requested range. Try again.");if(cur===c)showAdv()}
+ catch(e){out.innerHTML='<div class="msg bad">'+E(aiErr(e))+"</div>"}
+ finally{busy($("advGo"),false)}
+}
+function showAdv(){
+ const r=advRes||{};
+ const ru=(Array.isArray(r.reuse)?r.reuse:[]).map((x,i)=>({x:x,i:i,rec:S.records.find(y=>y.id===(x&&x.id))})).filter(z=>z.rec&&z.rec.id!==cur.id&&z.rec.pAddr&&((Number.isFinite(z.x.miles)&&z.x.miles>=0&&z.x.miles<=20)||(Number.isFinite(z.x.minutes)&&z.x.minutes>=0&&z.x.minutes<=30)));
+ const na=Array.isArray(r.newAddresses)?r.newAddresses:[],W=Array.isArray(r.warnings)?r.warnings:[];
+ let h='<div class="advh">Reuse a persona you already used nearby</div>';
+ h+=ru.length?ru.map(z=>{const x=z.x,rec=z.rec;return`<div class="ac"><div><b>${E(rec.persona||"Unnamed persona")}</b>${rec.pPhone?" · "+E(rec.pPhone):""}${rec.pEmail?" · "+E(rec.pEmail):""}<div class="sub">Home address: ${E(rec.pAddr)}</div><div class="sub">Used at ${E(rec.name)}, about ${E(x.miles)} mi / ${E(x.minutes)} min from this facility${x.homeMiles!=null?". Persona home is about "+E(x.homeMiles)+" mi from here":""}.${x.note?" "+E(x.note):""}</div></div><div class="ab"><button class="btn" data-a="ar" data-i="${z.i}">Use this persona</button><a class="lnk" href="${E(mapUrl(rec.pAddr,cur.address))}" target="_blank" rel="noopener">Check in Maps</a></div></div>`}).join(""):'<div class="msg">No earlier persona sits within 20 miles or 30 minutes of this facility.</div>';
+ h+='<div class="advh">New address 10 to 12 miles away</div>';
+ h+=na.length?na.map((a,i)=>`<div class="ac"><div><b>${E(a.address)}</b><div class="sub">About ${E(a.miles)} mi from this facility${a.why?" · "+E(a.why):""}</div></div><div class="ab"><button class="btn" data-a="an" data-i="${i}">Use this address</button><a class="lnk" href="${E(mapUrl(a.address,cur.address))}" target="_blank" rel="noopener">Check in Maps</a></div></div>`).join(""):'<div class="msg">No address suggestions came back. Try again.</div>';
+ h+='<div class="sub" style="margin-top:8px">Distances are AI estimates. Open the Maps link to confirm the drive before you use an address.</div>'+W.map(w=>`<div class="sub">${E(w)}</div>`).join("");
+ $("advOut").innerHTML=h;
+}
+$("advGo").onclick=runAdv;
+$("advOut").addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b||!cur||!advRes)return;const i=+b.dataset.i;
+ if(b.dataset.a==="ar"){const x=(advRes.reuse||[])[i],rec=x&&S.records.find(y=>y.id===x.id);if(rec)setPersona({persona:rec.persona,pPhone:rec.pPhone,pEmail:rec.pEmail,pAddr:rec.pAddr,pStory:rec.pStory})}
+ if(b.dataset.a==="an"){const a=(advRes.newAddresses||[])[i];if(a)setPersona({pAddr:String(a.address||"")})}});
+
+/* ---------- AI: review call notes ---------- */
+async function runReview(){
+ if(!SAMPLE||!cur)return;const c=cur,out=$("revOut");
+ if(!c.calls.length&&!c.notes.trim()){out.innerHTML='<div class="msg">Add at least one call note first.</div>';return}
+ const items=c.todo.map(t=>[t.id,t.t,t.v||"-",t.done?"collected":"open"].join(" | ")).join("\n");
+ const notes=c.calls.slice().sort((a,b)=>(a.d||"").localeCompare(b.d||"")).map(n=>"["+n.d+"] "+n.type+(n.who?" ("+n.who+")":"")+": "+n.text).join("\n\n");
+ const prompt=`You help a senior-living mystery shopper organize what she learned on phone calls.
+FACILITY: ${c.name}${c.programs?" ("+c.programs+")":""}
+
+CHECKLIST (id | item | current answer | state):
+${items||"(empty)"}
+
+CALL NOTES (oldest first):
+${c.notes}\n${notes}
+
+Tasks:
+1. Write a short plain-text summary (at most 6 lines) of the prices, fees and key facts in the notes.
+2. For each checklist item whose answer is clearly stated in the notes, return its id and the answer.
+3. List up to 6 new questions worth asking on a follow-up call that the checklist does not already cover.
+Use only what the notes say. Do not guess.
+Reply with only JSON: {"summary":"...","answers":[{"id":"<checklist id>","value":"<answer>"}],"followUps":["..."]}`;
+ busy($("nReview"),true,"Reviewing...");out.innerHTML='<div class="msg">Reading your notes...</div>';
+ try{revRes=await SAMPLE.json(prompt,{cache:false});if(cur!==c)return;
+  const ans=(Array.isArray(revRes.answers)?revRes.answers:[]).filter(x=>x&&c.todo.some(t=>t.id===x.id)&&x.value);revRes.answers=ans;
+  const fu=Array.isArray(revRes.followUps)?revRes.followUps:[];
+  out.innerHTML=`<div class="sec" style="margin-top:12px"><div class="advh" style="margin-top:0">Summary</div><div class="nb">${E(revRes.summary||"")}</div>
+  ${ans.length?`<div class="advh">Answers found for your checklist</div><ul class="hist">${ans.map(x=>{const t=c.todo.find(y=>y.id===x.id);return`<li>${E(t.t)}: <b style="color:var(--tx)">${E(x.value)}</b></li>`}).join("")}</ul>`:""}
+  ${fu.length?`<div class="advh">Worth asking next time</div><ul class="hist">${fu.map(t=>`<li>${E(t)}</li>`).join("")}</ul>`:""}
+  <div class="tools2">${ans.length?'<button class="btn" data-a="rvA">Apply answers to checklist</button>':""}${fu.length?'<button class="btn" data-a="rvF">Add questions to checklist</button>':""}${revRes.summary?'<button class="btn" data-a="rvS">Save summary as a note</button>':""}</div></div>`}
+ catch(e){out.innerHTML='<div class="msg bad">'+E(aiErr(e))+"</div>"}
+ finally{busy($("nReview"),false)}
+}
+$("nReview").onclick=runReview;
+$("nPhotoBtn").onclick=()=>$("nPhoto").click();
+$("nPhoto").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f||!SAMPLE||!cur)return;const photoFacility=cur;const m=$("nAiMsg");m.textContent="Reading the image...";
+ try{const r=await SAMPLE("This is a photo or screenshot of senior living pricing, a brochure or a price sheet from "+cur.name+". Write out every price, fee, room type and condition you can read, one per line, as plain text. Mark anything you cannot read clearly with (unclear). Do not guess numbers.",{images:f,cache:false});
+  if(cur!==photoFacility)return;$("nType").value="Pricing";$("nText").value=($("nText").value?$("nText").value+"\n":"")+r.text;m.textContent="Added to the note box. Check it against the image, then add the note."}
+ catch(x){m.textContent=aiErr(x)}};
+
+/* ---------- personas library ---------- */
+function usedBy(name){const n=String(name||"").trim().toLowerCase();return n?S.records.filter(r=>String(r.persona||"").trim().toLowerCase()===n):[]}
+function renderPers(){
+ const lib=S.personas.slice().sort((a,b)=>a.name.localeCompare(b.name)),have=new Set(lib.map(p=>p.name.trim().toLowerCase())),extra=[],seen=new Set();
+ S.records.forEach(r=>{const n=String(r.persona||"").trim(),k=n.toLowerCase();if(n&&!have.has(k)&&!seen.has(k)){seen.add(k);extra.push(n)}});
+ let h=lib.length?lib.map(p=>{const u=usedBy(p.name);return`<div class="ac" data-p="${E(p.id)}"><div><b>${E(p.name)}</b>${p.phone?" · "+E(p.phone):""}${p.email?" · "+E(p.email):""}<div class="sub">Home: ${E(p.addr||"not set")}</div>${p.story?`<div class="sub">${E(p.story)}</div>`:""}<div class="sub">Used at ${u.length} ${u.length===1?"facility":"facilities"}${u.length?": "+u.map(r=>E(r.name)).join(", "):""}</div></div><div class="ab"><button class="btn" data-a="pe">Edit</button><button class="lnk del" data-a="pd">Delete</button></div></div>`}).join(""):'<div class="empty sm">No saved personas yet.</div>';
+ if(extra.length)h+='<h3 class="sech">Used in your log but not saved</h3>'+extra.map(n=>{const u=usedBy(n);return`<div class="ac"><div><b>${E(n)}</b><div class="sub">Used at ${u.length} ${u.length===1?"facility":"facilities"}: ${u.map(r=>E(r.name)).join(", ")}</div></div><div class="ab"><button class="btn" data-a="pa" data-n="${E(n)}">Save to library</button></div></div>`}).join("");
+ $("pList").innerHTML=h;
+}
+function pfClear(){pEdit=null;["pfName","pfPhone","pfEmail","pfAddr","pfStory"].forEach(i=>$(i).value="");$("pfT").textContent="Add a persona"}
+$("pfClr").onclick=pfClear;
+$("pfSave").onclick=()=>{const name=$("pfName").value.trim();if(!name){$("pfName").focus();return}commitPers({id:pEdit||uid(),name:name,phone:$("pfPhone").value.trim(),email:$("pfEmail").value.trim(),addr:$("pfAddr").value.trim(),story:$("pfStory").value.trim()});pfClear()};
+$("pList").addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
+ if(a==="pe"){const p=S.personas.find(x=>x.id===b.closest("[data-p]").dataset.p);if(!p)return;pEdit=p.id;$("pfName").value=p.name;$("pfPhone").value=p.phone||"";$("pfEmail").value=p.email||"";$("pfAddr").value=p.addr||"";$("pfStory").value=p.story||"";$("pfT").textContent="Edit persona";$("pfName").focus()}
+ else if(a==="pd"){if(!arm(b))return;const id=b.closest("[data-p]").dataset.p;S.personas=S.personas.filter(x=>x.id!==id);if(mode==="db")rmDoc("personas/"+id);else saveLocal();renderPers();render()}
+ else if(a==="pa"){const n=b.dataset.n,r=usedBy(n)[0];commitPers({id:uid(),name:n,phone:(r&&r.pPhone)||"",email:(r&&r.pEmail)||"",addr:(r&&r.pAddr)||"",story:(r&&r.pStory)||""})}});
+
+/* ---------- AI planner ---------- */
+async function scanNotes(){
+ const out=$("plReadOut"),c=S.records.filter(r=>(String(r.notes||"").trim()||r.calls.length)&&(!r.persona||!r.pAddr||!r.pStory));
+ if(!c.length){out.innerHTML='<div class="msg">No notes with missing persona details were found.</div>';return}
+ const prompt=`Below are works from a US senior-living mystery shopper's log. Each has the community's own address and a free-text "notes" field the shopper typed for herself. The notes often hold the PERSONA she used on the call: a made-up caller name, the home address she claimed (a street and town, often without a house number), names and ages of the relatives she was calling for, phone numbers or area codes she used, or an email. Notes may also hold other things (questions to ask, facility contacts, reminders).
+
+For each work, extract only what is clearly the persona's:
+- persona: the caller's name
+- pAddr: the home address the persona claimed (never the community's own address)
+- pPhone: a phone number the persona used (not the community's number); leave empty if only an area code or a hint is given
+- pEmail: an email the persona used
+- pStory: relatives and ages or other backstory, in a short phrase
+Use "" when something is not clearly present. Do not guess or invent. Skip works with nothing to extract.
+
+WORKS (id | community | community address | notes):
+${c.map(r=>[r.id,r.name,r.address||"-",(r.notes+"\n"+r.calls.map(n=>n.text).join("\n"))].join(" | ")).join("\n")}
+
+Reply with only a JSON array: [{"id":"R0002","persona":"Kevin Hunter","pAddr":"Columbus, OH","pPhone":"","pEmail":"","pStory":"Grandparents Genesis 81 and Jane 78"}]`;
+ busy($("plRead"),true,"Reading...");out.innerHTML='<div class="msg">Reading '+c.length+' notes...</div>';
+ try{const res=await SAMPLE.json(prompt);scanRes=(Array.isArray(res)?res:[]).filter(x=>x&&c.some(r=>r.id===x.id)&&(x.persona||x.pAddr||x.pPhone||x.pEmail||x.pStory));
+  out.innerHTML=scanRes.length?scanRes.map((x,i)=>{const r=S.records.find(y=>y.id===x.id);return`<div class="ac"><div><label style="display:flex;gap:8px;align-items:flex-start;color:var(--tx)"><input type="checkbox" class="sc" data-i="${i}" checked style="margin-top:4px"><span><b>${E(r.name)}</b><div class="sub">Notes: ${E(String(r.notes).slice(0,140))}</div><div class="sub">Persona: ${E(x.persona||"-")} · Number: ${E(x.pPhone||"-")} · Email: ${E(x.pEmail||"-")}</div><div class="sub">Home address: ${E(x.pAddr||"-")}</div>${x.pStory?`<div class="sub">${E(x.pStory)}</div>`:""}</span></label></div></div>`}).join("")+'<div class="acts end"><button class="btn pri" id="scApply">Save checked</button></div>':'<div class="msg">No persona details were found in the notes.</div>'}
+ catch(e){out.innerHTML='<div class="msg bad">'+E(aiErr(e))+"</div>"}
+ finally{busy($("plRead"),false)}
+}
+$("plRead").onclick=scanNotes;
+$("plReadOut").addEventListener("click",async e=>{const b=e.target.closest("#scApply");if(!b)return;b.disabled=true;b.textContent="Saving...";let n=0;const boxes=[].slice.call($("plReadOut").querySelectorAll(".sc"));
+ for(const bx of boxes){if(!bx.checked)continue;const x=scanRes[+bx.dataset.i],r=x&&S.records.find(y=>y.id===x.id);if(!r)continue;const c=clone(r);["persona","pAddr","pPhone","pEmail","pStory"].forEach(k=>{if(!c[k]&&x[k])c[k]=String(x[k])});if(await commit(c)!==false)n++}
+ $("plReadOut").innerHTML='<div class="msg">Saved persona details on '+n+' '+(n===1?"work":"works")+'.</div>'});
+async function runPlan(){
+ const out=$("plOut");if(document.querySelector('#plReadOut #scApply')){out.innerHTML='<div class="msg">Review the extracted persona details and save checked entries before planning. Uncheck any details you do not want saved.</div>';return}const T=S.records.filter(r=>r.status==="Not started"&&!r.pAddr&&r.address),A=S.records.filter(r=>r.pAddr&&r.address);
+ if(!T.length){out.innerHTML='<div class="msg">Every not-started facility with an address already has a persona.</div>';return}
+ const prompt=`You are helping a US senior-living mystery shopper plan which persona to use for each community she will phone. You have no internet or map access, so estimate road distances from your knowledge of US geography.
+
+RULE 1 (new address): a persona's home address must be about 10 to 12 miles by road from the community's address, in a real town with ordinary residential streets.
+RULE 2 (reuse): a persona and home address already used for another community may be reused when that other community is within about 20 miles or about 30 minutes' drive of the target community.
+
+TARGETS (id | community | address):
+${T.map(r=>[r.id,r.name,r.address].join(" | ")).join("\n")}
+
+ALREADY USED (id | community | community address | persona | persona home address):
+${A.map(r=>[r.id,r.name,r.address,r.persona||"(no name)",r.pAddr].join(" | ")).join("\n")||"(none yet)"}
+
+For every TARGET choose "reuse" (rule 2, using an id from ALREADY USED) when one fits, otherwise "new" (rule 1). Targets that need a new address and lie within about 20 miles of each other must share the same new address and the same "group" letter, so one persona covers them.
+Reply with only a JSON array, one object per target: [{"id":"<target id>","action":"reuse"|"new","fromId":"<ALREADY USED id, or empty>","miles":<est. road miles between the target and fromId's community, or 0>,"minutes":<est. drive minutes, or 0>,"address":"<for new: street name, town, state ZIP, no house number; else empty>","group":"<letter or empty>","note":"<short>"}]`;
+ busy($("plRun"),true,"Planning...");out.innerHTML='<div class="msg">Planning '+T.length+' facilities. This can take a minute or two.</div>';
+ try{const res=await SAMPLE.json(prompt,{cache:false,modelTier:"complex"});planDone=new Set();planRes=(Array.isArray(res)?res:[]).filter(x=>x&&T.some(r=>r.id===x.id));
+ const ids=new Set();const groups=new Map();for(const x of planRes){if(ids.has(x.id))throw new Error('The plan contains duplicate facilities. Try again.');ids.add(x.id);if(x.action==='reuse'){if(!A.some(r=>r.id===x.fromId)||!((Number.isFinite(x.miles)&&x.miles>=0&&x.miles<=20)||(Number.isFinite(x.minutes)&&x.minutes>=0&&x.minutes<=30)))throw new Error('The plan contains an invalid reuse. Try again.')}else if(x.action==='new'&&typeof x.address==='string'&&x.address.trim()){if(x.group){if(groups.has(x.group)&&groups.get(x.group)!==x.address)throw new Error('A nearby group has inconsistent addresses. Try again.');groups.set(x.group,x.address)}}else throw new Error('The plan contains an incomplete address. Try again.')}
+ if(planRes.length!==T.length)throw new Error('The plan missed some facilities. Try again.');showPlan()}
+ catch(e){planRes=[];out.innerHTML='<div class="msg bad">'+E(aiErr(e))+"</div>"}
+ finally{busy($("plRun"),false)}
+}
+function showPlan(){
+ const out=$("plOut");if(!planRes.length){out.innerHTML='<div class="msg">No plan came back. Try again.</div>';return}
+ out.innerHTML=planRes.map((x,i)=>{const r=S.records.find(y=>y.id===x.id),a=x.action==="reuse"?S.records.find(y=>y.id===x.fromId):null;if(!r)return"";
+  const reuse=x.action==="reuse"&&a,done=planDone.has(i);
+  const body=reuse?`Reuse <b>${E(a.persona||"unnamed persona")}</b>${a.pPhone?" · "+E(a.pPhone):""} (home ${E(a.pAddr)}). Used at ${E(a.name)}, about ${E(x.miles)} mi / ${E(x.minutes)} min away.`:`New address <b>${E(x.address||"")}</b>${x.group?" · group "+E(x.group):""}`;
+  const link=reuse?mapUrl(a.pAddr,r.address):(x.address?mapUrl(x.address,r.address):"");
+  return`<div class="ac"><div><b>${E(r.name)}</b><div class="sub">${E(r.address)}</div><div>${body}</div>${x.note?`<div class="sub">${E(x.note)}</div>`:""}</div><div class="ab">${done?'<span class="sub">Applied</span>':`<button class="btn" data-a="pa" data-i="${i}">Apply</button>`}${link?`<a class="lnk" href="${E(link)}" target="_blank" rel="noopener">Check in Maps</a>`:""}</div></div>`}).join("")+'<div class="acts end"><button class="btn pri" data-a="paAll">Apply all</button></div><div class="sub">Distances are AI estimates. Applying fills the persona fields on the facility. You can still edit them.</div>';
+}
+async function applyPlan(i){
+ const x=planRes[i];if(!x||planDone.has(i))return;const r=S.records.find(y=>y.id===x.id);if(!r||r.status!=="Not started"||r.pAddr)return;const c=clone(r),a=x.action==="reuse"?S.records.find(y=>y.id===x.fromId):null;
+ if(a){c.persona=c.persona||a.persona||"";c.pPhone=a.pPhone||"";c.pEmail=a.pEmail||"";c.pAddr=a.pAddr||"";c.pStory=a.pStory||""}
+ else if(x.address)c.pAddr=String(x.address);else return;
+ if(await commit(c)!==false)planDone.add(i);
+}
+$("plRun").onclick=runPlan;
+$("plOut").addEventListener("click",async e=>{const b=e.target.closest("[data-a]");if(!b)return;
+ if(b.dataset.a==="pa"){await applyPlan(+b.dataset.i);showPlan()}
+ if(b.dataset.a==="paAll"){b.disabled=true;for(let i=0;i<planRes.length;i++)await applyPlan(i);showPlan()}});
+
+/* ---------- AI: ask about the log ---------- */
+let turns=[],ctl=null;
+const SUGG=["Which facilities still need a persona?","What have I earned this pay period?","Which approved facilities are missing pricing?","Which personas have I used most?"];
+function ctxText(){return JSON.stringify({facilities:S.records.map(r=>({...clean(r),files:r.files.map(f=>({name:f.name,note:f.note}))})),personas:S.personas})}
+function bubble(cls,txt){const d=document.createElement("div");d.className="bub "+cls;d.textContent=txt;$("aMsgs").appendChild(d);$("aMsgs").scrollIntoView({block:"end"});return d}
+async function sendAsk(msg){
+ if(!SAMPLE||ctl||!msg.trim())return;msg=msg.trim();$("aIn").value="";bubble("u",msg);const a=bubble("a","Thinking...");
+ turns.push({role:"user",content:msg});
+ const INSTR=`You are the assistant inside a mystery shopper's work log. She phones US senior living communities as a caller persona to get pricing. Answer from the DATA only, briefly, in plain text without tables. If the data does not contain the answer, say so. Pay: $${RATE} per work with status Approved and an approved date. Bonus between 2026-10-01 and 2026-12-31: $5 at 75 approvals, $10 at 100. Pay periods (work dates, pay date): ${PER.map(p=>p[0]+" to "+p[1]+", pays "+p[2]).join("; ")}. Today is ${today()}. Any distance you give is your own estimate and must be flagged as one.
+
+DATA (id | community | status | worked | approved | persona | persona home | number | email | community address | checklist | notes | files):
+${ctxText()}`;
+ ctl=new AbortController();$("aSend").hidden=true;$("aStop").hidden=false;
+ try{const r=await SAMPLE([{role:"user",content:INSTR}].concat(turns.slice(-8)),{cache:false,signal:ctl.signal,onText:u=>{a.textContent=u.text}});a.textContent=r.text;turns.push({role:"assistant",content:r.text})}
+ catch(e){if(e&&e.code==="cancelled"){a.textContent=(e.text||"")||"Stopped.";if(e.text)turns.push({role:"assistant",content:e.text});else turns.pop()}else{a.textContent=e&&e.text?e.text+"\n\n("+aiErr(e)+")":aiErr(e);if(e&&e.text)turns.push({role:"assistant",content:e.text});else turns.pop()}}
+ finally{$("aSend").hidden=false;$("aStop").hidden=true;ctl=null}
+}
+$("aChips").innerHTML=SUGG.map(s=>`<button class="chip" type="button">${E(s)}</button>`).join("");
+$("aChips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(b)sendAsk(b.textContent)});
+$("aForm").addEventListener("submit",e=>{e.preventDefault();sendAsk($("aIn").value)});
+$("aStop").onclick=()=>{if(ctl)ctl.abort()};
+
+/* ---------- export, import, theme, wiring ---------- */
+$("exp").onclick=async()=>{const data=JSON.stringify({version:2,records:S.records,personas:S.personas},null,1),fn="work-log-"+today()+".json";
+ try{const d=DL||await use("downloads");if(d){await d.save({filename:fn,data:data});return}}catch(e){}
+ const a=document.createElement("a");a.href="data:application/json,"+enc(data);a.download=fn;a.click()};
+$("imp").onclick=()=>$("fi").click();
+$("fi").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;let j;try{j=JSON.parse(await f.text());if(!j||!Array.isArray(j.records))throw 0}catch(x){setSync("That file is not a Work Log export.",true);return}
+ if(!await ask("Import "+j.records.length+" works from "+f.name+"? Works with the same ID are overwritten. Everything else stays.","Import"))return;
+ const recs=j.records.map(norm);for(let i=0;i<recs.length;i++){setSync("Importing "+(i+1)+" of "+recs.length+"...");await commit(recs[i])}
+ if(Array.isArray(j.personas))for(const p of j.personas)if(p&&p.id&&p.name)await commitPers(p);
+ setSync("Imported "+recs.length+" works.");setTimeout(()=>{if(!seeding)setSync("")},4000)};
+$("th").onclick=()=>{const d=document.documentElement,dark=getComputedStyle(d).getPropertyValue("--bg").trim()==="#14181f";d.dataset.theme=dark?"light":"dark";try{localStorage.setItem(TKEY,d.dataset.theme)}catch(e){}};
+try{const t=localStorage.getItem(TKEY);if(t)document.documentElement.dataset.theme=t}catch(e){}
+$("add").onclick=()=>openDlg();
+$("bPers").onclick=()=>{renderPers();$("dp").showModal()};
+$("bPlan").onclick=()=>{$("dpl").showModal();if(!scanRes.length)scanNotes()};
+$("bAsk").onclick=()=>{$("dask").showModal();$("aIn").focus()};
+$("q").oninput=render;
+document.addEventListener("click",e=>{
+ const c=e.target.closest(".chip[data-s]");if(c){flt=c.dataset.s;render();return}
+ const h=e.target.closest("th[data-k]");if(h){sd=sk===h.dataset.k?-sd:1;sk=h.dataset.k;render();return}
+ const x=e.target.closest("[data-close]");if(x){const d=x.closest("dialog");if(d)d.close();return}
+ const tr=e.target.closest("#body tr[data-id]");if(tr&&!e.target.closest("select,input"))openDlg(tr.dataset.id)});
+$("fxPayPeriod").innerHTML=PER.map((p,i)=>`<option value="${i}">${p[0]} – ${p[1]} · pays ${p[2]}</option>`).join("");
+$("fxPayPeriod").value=Math.max(0,PER.indexOf(per(today())||PER.find(p=>p[1]>=today())||PER[PER.length-1]));
+$("fxPayPeriod").onchange=()=>{fxAmountSource="period";convertCurrency()};
+$("fxRefresh").onclick=loadExchangeRate;
+$("fxAmount").oninput=()=>{fxAmountSource="manual";convertCurrency()};
+$("fxRate").oninput=()=>{++fxRequest;$("fxRateStatus").textContent="Using your manually entered exchange rate.";convertCurrency()};
+$("fxCurrency").onchange=convertCurrency;
+$("fxEarned").onclick=()=>{fxAmountSource="total";convertCurrency()};
+$("fxPeriod").onclick=()=>{fxAmountSource="period";convertCurrency()};
+$("fxCurrency").options[1].disabled=true;
+document.addEventListener("change",e=>{const t=e.target;if(!t.matches("#body .approval-date"))return;if(!t.validity.valid)return;const r=S.records.find(x=>x.id===t.dataset.id);if(!r||r.approvedDate===t.value)return;const c=clone(r);c.approvedDate=t.value;c.log.push({d:today(),t:"Approved date → "+(c.approvedDate||"cleared")});commit(c)});
+document.addEventListener("change",e=>{const t=e.target;if(!t.classList.contains("st")||!t.dataset.id||t.closest("dialog"))return;const r=S.records.find(x=>x.id===t.dataset.id);if(!r)return;const c=clone(r);c.status=t.value;if(c.status==="Approved"&&!c.approvedDate)c.approvedDate=today();c.log.push({d:today(),t:"Status → "+c.status});commit(c)});
+document.querySelectorAll("dialog").forEach(d=>d.addEventListener("click",e=>{if(e.target===d)d.close()}));
+document.body.classList.add("noimg");
+
+async function init(){
+ render();
+ const r=await Promise.all([use("db"),use("assets"),use("sample"),use("downloads")]);
+ DB=r[0];ASSETS=r[1];SAMPLE=r[2];DL=r[3];
+ if(!SAMPLE)document.body.classList.add("noai");
+ else if(SAMPLE.limits)SAMPLE.limits().then(l=>{if(l&&l.images)document.body.classList.remove("noimg")}).catch(()=>{});
+ if(!DB){mode="local";const L=loadLocal();S={records:L.records,personas:L.personas,loading:false};$("noteTxt").textContent="Saved in this browser only. Use Export to back up or move your work to another device.";render();return}
+ mode="db";$("noteTxt").textContent="Your works are saved to your account and open on any device. Export makes a backup file. Click a facility to add call notes, record the persona, number and email you used, list what you still need to collect, and attach files.";
+ startDb();
+}
+init();
+loadExchangeRate();
+})();
+</script>
+
+</body></html>

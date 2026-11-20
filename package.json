@@ -1,0 +1,1 @@
+{"name":"facility-work-log","private":true,"type":"module","dependencies":{"@google/genai":"^3.0.0","@netlify/blobs":"^11.1.8","@netlify/database":"latest","drizzle-orm":"beta","openai":"^6.0.0"},"devDependencies":{"drizzle-kit":"beta"}}

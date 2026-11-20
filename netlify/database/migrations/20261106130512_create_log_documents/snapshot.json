@@ -1,0 +1,53 @@
+{
+  "version": "8",
+  "dialect": "postgres",
+  "id": "b401b134-2cbc-4700-b0e4-eb10d02435a4",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
+  "ddl": [
+    {
+      "isRlsEnabled": false,
+      "name": "log_documents",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "path",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "log_documents"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "data",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "log_documents"
+    },
+    {
+      "columns": [
+        "path"
+      ],
+      "nameExplicit": false,
+      "name": "log_documents_pkey",
+      "schema": "public",
+      "table": "log_documents",
+      "entityType": "pks"
+    }
+  ],
+  "renames": []
+}
